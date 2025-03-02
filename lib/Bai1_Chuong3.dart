@@ -1,3 +1,4 @@
+import 'package:demo_doan_nhom6/second_page.dart';
 import 'package:flutter/material.dart';
 
 class Bai1Chuong3 extends StatelessWidget {
@@ -49,7 +50,7 @@ class Bai1Chuong3Screen extends StatelessWidget {
             ),
           ),
           const Padding(
-            padding: EdgeInsets.only(top: 30, left: 8),
+            padding: EdgeInsets.only(top: 20, left: 8),
             child: Text(
               "Họ và  tên: Hà Minh Tiến",
               style: TextStyle(
@@ -60,7 +61,7 @@ class Bai1Chuong3Screen extends StatelessWidget {
             ),
           ),
           const Padding(
-            padding: EdgeInsets.only(top: 30, left: 8),
+            padding: EdgeInsets.only(top: 20, left: 8),
             child: Text(
               "MSSV: 2001224407",
               style: TextStyle(
@@ -71,7 +72,7 @@ class Bai1Chuong3Screen extends StatelessWidget {
             ),
           ),
           const Padding(
-            padding: EdgeInsets.only(top: 30, left: 8),
+            padding: EdgeInsets.only(top: 20, left: 8),
             child: Text(
               "Lớp: 13DHTH05",
               style: TextStyle(
@@ -82,7 +83,7 @@ class Bai1Chuong3Screen extends StatelessWidget {
             ),
           ),
           const Padding(
-            padding: EdgeInsets.only(top: 30, left: 8),
+            padding: EdgeInsets.only(top: 20, left: 8),
             child: Text(
               "Ngành: Công nghệ thông tin",
               style: TextStyle(
@@ -93,10 +94,29 @@ class Bai1Chuong3Screen extends StatelessWidget {
             ),
           ),
           const Padding(
-            padding: EdgeInsets.only(top: 30, left: 8),
+            padding: EdgeInsets.only(top: 20, left: 8),
             child: Text(
               "Trường: Đại học Công Thương Thành phố Hồ Chí Minh",
               style: TextStyle(color: Colors.blue, fontSize: 20),
+            ),
+          ),
+          Align(
+            alignment: Alignment.center,
+            child: Padding(
+              padding: EdgeInsets.only(top: 20),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: StadiumBorder(),
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SecondPage()),
+                  );
+                },
+                child: Text("Trở về"),
+              ),
             ),
           ),
         ],
