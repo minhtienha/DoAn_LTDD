@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:doan_nhom06/ThongTinBacSi.dart';
+<<<<<<< HEAD
+=======
+import 'package:doan_nhom06/DatBacSi.dart';
+>>>>>>> ha_minh_tien
 
 class DatTheoBacSi extends StatelessWidget {
   const DatTheoBacSi({super.key});
@@ -236,21 +240,31 @@ class DatTheoBacSi extends StatelessWidget {
                             ],
                           ),
                           SizedBox(height: 10),
-                          Container(
-                            height: 40,
-                            width: double.infinity, // Chiếm toàn bộ chiều ngang
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              color: Color(0xff0165fc),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Đặt lịch',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DatBacSi(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 40,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                color: Color(0xff0165fc),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Đặt lịch',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
                               ),
                             ),
@@ -357,21 +371,31 @@ class DatTheoBacSi extends StatelessWidget {
                             ],
                           ),
                           SizedBox(height: 10),
-                          Container(
-                            height: 40,
-                            width: double.infinity, // Chiếm toàn bộ chiều ngang
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              color: Color(0xff0165fc),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Đặt lịch',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DatBacSi(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 40,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                color: Color(0xff0165fc),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Đặt lịch',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
                               ),
                             ),
@@ -481,21 +505,31 @@ class DatTheoBacSi extends StatelessWidget {
                             height: 10,
                           ), // Khoảng cách giữa thông tin và nút
                           // Nút Đặt lịch (Bên dưới ảnh và thông tin)
-                          Container(
-                            height: 40,
-                            width: double.infinity, // Chiếm toàn bộ chiều ngang
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              color: Color(0xff0165fc),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Đặt lịch',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DatBacSi(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 40,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                color: Color(0xff0165fc),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Đặt lịch',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
                               ),
                             ),
@@ -606,21 +640,31 @@ class DatTheoBacSi extends StatelessWidget {
                             height: 10,
                           ), // Khoảng cách giữa thông tin và nút
                           // Nút Đặt lịch (Bên dưới ảnh và thông tin)
-                          Container(
-                            height: 40,
-                            width: double.infinity, // Chiếm toàn bộ chiều ngang
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              color: Color(0xff0165fc),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Đặt lịch',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DatBacSi(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 40,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                color: Color(0xff0165fc),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Đặt lịch',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
                               ),
                             ),
