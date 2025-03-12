@@ -1,3 +1,4 @@
+import 'package:doan_nhom06/XacNhanDatBacSi.dart';
 import 'package:flutter/material.dart';
 
 class DatBacSi extends StatelessWidget {
@@ -366,7 +367,14 @@ class DatBacSi extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => XacNhanDatBacSi(),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF0165FC),
                       foregroundColor: Colors.white,
