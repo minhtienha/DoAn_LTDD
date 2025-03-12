@@ -15,7 +15,11 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "33CC10EC2044A3C60003C045"
+<<<<<<< HEAD
                BuildableName = "doan_nhom06.app"
+=======
+               BuildableName = "demo_doan_nhom6.app"
+>>>>>>> 6e362aa6257affedbd6854599c6b645cf2affbe6
                BlueprintName = "Runner"
                ReferencedContainer = "container:Runner.xcodeproj">
             </BuildableReference>
@@ -31,7 +35,11 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33CC10EC2044A3C60003C045"
+<<<<<<< HEAD
             BuildableName = "doan_nhom06.app"
+=======
+            BuildableName = "demo_doan_nhom6.app"
+>>>>>>> 6e362aa6257affedbd6854599c6b645cf2affbe6
             BlueprintName = "Runner"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
@@ -66,7 +74,11 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33CC10EC2044A3C60003C045"
+<<<<<<< HEAD
             BuildableName = "doan_nhom06.app"
+=======
+            BuildableName = "demo_doan_nhom6.app"
+>>>>>>> 6e362aa6257affedbd6854599c6b645cf2affbe6
             BlueprintName = "Runner"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>
@@ -83,7 +95,11 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "33CC10EC2044A3C60003C045"
+<<<<<<< HEAD
             BuildableName = "doan_nhom06.app"
+=======
+            BuildableName = "demo_doan_nhom6.app"
+>>>>>>> 6e362aa6257affedbd6854599c6b645cf2affbe6
             BlueprintName = "Runner"
             ReferencedContainer = "container:Runner.xcodeproj">
          </BuildableReference>

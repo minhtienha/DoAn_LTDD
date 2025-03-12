@@ -5,7 +5,11 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
+<<<<<<< HEAD
 	<string>Doan Nhom06</string>
+=======
+	<string>Demo Doan Nhom6</string>
+>>>>>>> 6e362aa6257affedbd6854599c6b645cf2affbe6
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +17,11 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
+<<<<<<< HEAD
 	<string>doan_nhom06</string>
+=======
+	<string>demo_doan_nhom6</string>
+>>>>>>> 6e362aa6257affedbd6854599c6b645cf2affbe6
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

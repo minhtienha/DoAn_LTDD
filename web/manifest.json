@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
     "name": "doan_nhom06",
     "short_name": "doan_nhom06",
+=======
+    "name": "demo_doan_nhom6",
+    "short_name": "demo_doan_nhom6",
+>>>>>>> 6e362aa6257affedbd6854599c6b645cf2affbe6
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
