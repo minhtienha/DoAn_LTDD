@@ -1,11 +1,30 @@
 import 'package:doan_nhom06/XacNhanDatBacSi.dart';
 import 'package:flutter/material.dart';
 
-class DatBacSi extends StatelessWidget {
+class DatBacSi extends StatefulWidget {
   const DatBacSi({super.key});
 
   @override
+  _DatBacSiState createState() => _DatBacSiState();
+}
+
+class _DatBacSiState extends State<DatBacSi> {
+  String? selectedDate;
+  String? selectedTime;
+
+  @override
   Widget build(BuildContext context) {
+    //
+    List<Map<String, String>> dates = [
+      {'day': 'Thứ 2', 'date': '10/03'},
+      {'day': 'Thứ 3', 'date': '11/03'},
+      {'day': 'Thứ 4', 'date': '12/03'},
+      {'day': 'Thứ 5', 'date': '13/03'},
+      {'day': 'Thứ 6', 'date': '14/03'},
+    ];
+
+    List<String> times = ['7:00 AM', '7:30 AM', '8:00 AM', '8:30 AM'];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -94,160 +113,65 @@ class DatBacSi extends StatelessWidget {
                   ),
                   SizedBox(height: 10),
                   SingleChildScrollView(
-                    scrollDirection: Axis.horizontal, // cuộn ngang
+                    scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: [
-                        Container(
-                          width: 100,
-                          padding: EdgeInsets.only(right: 10),
-                          child: Container(
-                            padding: EdgeInsets.only(top: 6, bottom: 6),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey, width: 2),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  'Thứ 2',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black,
-                                  ),
+                      children:
+                          dates.map((date) {
+                            bool isSelected = selectedDate == date['date'];
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  selectedDate =
+                                      isSelected ? null : date['date'];
+                                });
+                              },
+                              child: Container(
+                                width: 100,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 5,
                                 ),
-                                Text(
-                                  '10/03',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color:
+                                      isSelected
+                                          ? Color(0xFF0165FC)
+                                          : Colors.white,
+                                  border: Border.all(
+                                    color:
+                                        isSelected
+                                            ? Color(0xFF0165FC)
+                                            : Colors.grey,
+                                    width: 2,
                                   ),
+                                  borderRadius: BorderRadius.circular(30),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 100,
-                          padding: EdgeInsets.only(right: 10),
-                          child: Container(
-                            padding: EdgeInsets.only(top: 6, bottom: 6),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey, width: 2),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  'Thứ 3',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black,
-                                  ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      date['day']!,
+                                      style: TextStyle(
+                                        color:
+                                            isSelected
+                                                ? Colors.white
+                                                : Colors.black,
+                                      ),
+                                    ),
+                                    Text(
+                                      date['date']!,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            isSelected
+                                                ? Colors.white
+                                                : Colors.black,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  '11/03',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 100,
-                          padding: EdgeInsets.only(right: 10),
-                          child: Container(
-                            padding: EdgeInsets.only(top: 6, bottom: 6),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey, width: 2),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  'Thứ 4',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                Text(
-                                  '12/03',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 100,
-                          padding: EdgeInsets.only(right: 10),
-                          child: Container(
-                            padding: EdgeInsets.only(top: 6, bottom: 6),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey, width: 2),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  'Thứ 5',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                Text(
-                                  '13/03',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 100,
-                          padding: EdgeInsets.only(right: 10),
-                          child: Container(
-                            padding: EdgeInsets.only(top: 6, bottom: 6),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey, width: 2),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  'Thứ 6',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                Text(
-                                  '14/03',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                              ),
+                            );
+                          }).toList(),
                     ),
                   ),
                 ],
@@ -265,98 +189,50 @@ class DatBacSi extends StatelessWidget {
                   ),
                   SizedBox(height: 10),
                   SingleChildScrollView(
-                    scrollDirection: Axis.horizontal, // cuộn ngang
+                    scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.only(right: 10),
-                          child: Container(
-                            padding: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey, width: 2),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  '7:00 AM',
+                      children:
+                          times.map((time) {
+                            bool isSelected = selectedTime == time;
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  selectedTime = isSelected ? null : time;
+                                });
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                ),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color:
+                                      isSelected
+                                          ? Color(0xFF0165FC)
+                                          : Colors.white,
+                                  border: Border.all(
+                                    color:
+                                        isSelected
+                                            ? Color(0xFF0165FC)
+                                            : Colors.grey,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                child: Text(
+                                  time,
                                   style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
+                                    color:
+                                        isSelected
+                                            ? Colors.white
+                                            : Colors.black,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.only(right: 10),
-                          child: Container(
-                            padding: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey, width: 2),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  '7:30 AM',
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.only(right: 10),
-                          child: Container(
-                            padding: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey, width: 2),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  '8:00 AM',
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.only(right: 10),
-                          child: Container(
-                            padding: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey, width: 2),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  '8:30 AM',
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                              ),
+                            );
+                          }).toList(),
                     ),
                   ),
                 ],

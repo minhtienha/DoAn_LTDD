@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:doan_nhom06/ThongTinBacSi.dart';
-<<<<<<< HEAD
-=======
 import 'package:doan_nhom06/DatBacSi.dart';
->>>>>>> ha_minh_tien
 
 class DatTheoBacSi extends StatelessWidget {
   const DatTheoBacSi({super.key});
