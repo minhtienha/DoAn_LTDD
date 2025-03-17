@@ -1,5 +1,6 @@
 import 'package:doan_nhom06/DatThanhCong.dart';
 import 'package:doan_nhom06/XacNhanDatBacSi.dart';
+import 'package:doan_nhom06/trangdsphongkham.dart';
 import 'package:flutter/material.dart';
 import 'package:doan_nhom06/DatBacSi.dart';
 import 'package:doan_nhom06/DatTheoBacSi.dart';
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
       title: 'Ứng dụng demo Flutter',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const DatBacSi(),
+      home: ClinicListPage(),
     );
   }
 }
