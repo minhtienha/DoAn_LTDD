@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:doan_nhom06/DatBacSi.dart';
+import 'package:doan_nhom06/datbacsi.dart';
 
 class ThongTinBacSi extends StatelessWidget {
   const ThongTinBacSi({super.key});

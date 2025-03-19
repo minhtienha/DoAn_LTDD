@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:doan_nhom06/ThongTinBacSi.dart';
-import 'package:doan_nhom06/DatBacSi.dart';
+import 'package:doan_nhom06/thongtinbacsi.dart';
+import 'package:doan_nhom06/datbacsi.dart';
 
-class DatTheoBacSi extends StatelessWidget {
+class DatTheoBacSi extends StatefulWidget {
   const DatTheoBacSi({super.key});
+
+  @override
+  _DatTheoBacSi createState() => _DatTheoBacSi();
+}
+
+class _DatTheoBacSi extends State<DatTheoBacSi> {
+  String selectedSpecialty = "Chuyên khoa";
+  String selectedGender = "Giới tính";
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +21,12 @@ class DatTheoBacSi extends StatelessWidget {
           'Chọn bác sĩ',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        leading: Icon(Icons.arrow_back, color: Colors.white),
+        leading: InkWell(
+          onTap: () {
+            Navigator.pop(context);
+          },
+          child: Icon(Icons.arrow_back, color: Colors.white),
+        ),
         backgroundColor: Color(0xFF0165FC),
       ),
       body: Column(
@@ -21,113 +34,175 @@ class DatTheoBacSi extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 10),
-          Align(
-            alignment: Alignment.center,
-            child: SizedBox(
-              height: 45,
-              width: 360,
-              child: TextField(
-                style: TextStyle(
-                  color: Color(0xff020202),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 0.5,
-                ),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Color(0xffeaecf0),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  hintText: "Tìm nhanh tên bác sĩ",
-                  hintStyle: TextStyle(
-                    color: Color.fromARGB(255, 118, 117, 117),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: 0.5,
-                    decorationThickness: 6,
-                  ),
-                  prefixIcon: Icon(Icons.search),
-                  prefixIconColor: Colors.black,
-                ),
-              ),
-            ),
-          ),
           Padding(
-            padding: EdgeInsets.only(right: 26),
+            padding: EdgeInsets.symmetric(horizontal: 16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Container "Chuyên khoa"
-                Container(
-                  margin: EdgeInsets.only(top: 10),
-                  height: 35,
-                  width: 140,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(6),
-                    color: Color(0xff0165fc),
-                  ),
-                  child: Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Chuyên khoa',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        SizedBox(width: 5),
-                        Icon(
-                          Icons.keyboard_arrow_down,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ],
+                Expanded(
+                  child: TextField(
+                    style: TextStyle(
+                      color: Color(0xff020202),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: 0.5,
+                    ),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Color(0xffeaecf0),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      hintText: "Tìm nhanh tên bác sĩ",
+                      hintStyle: TextStyle(
+                        color: Color.fromARGB(255, 118, 117, 117),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 0.5,
+                        decorationThickness: 6,
+                      ),
+                      prefixIcon: Icon(Icons.search),
+                      prefixIconColor: Colors.black,
                     ),
                   ),
                 ),
                 SizedBox(width: 10),
-
-                // Container "Giới tính"
-                Container(
-                  margin: EdgeInsets.only(top: 10),
-                  height: 35,
-                  width: 140,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(6),
-                    color: Color(0xff0165fc),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0165FC),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                   ),
-                  child: Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Giới tính',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        SizedBox(width: 5),
-                        Icon(
-                          Icons.keyboard_arrow_down,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ],
+                  onPressed: () {
+                    // Xử lý tìm kiếm ở đây
+                  },
+                  child: Text(
+                    'Tìm kiếm',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ],
             ),
           ),
+          Padding(
+            padding: EdgeInsets.only(right: 26),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+
+              children: [
+                // "Chuyên khoa"
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    setState(() {
+                      selectedSpecialty = value;
+                    });
+                  },
+                  itemBuilder:
+                      (BuildContext context) => [
+                        const PopupMenuItem(
+                          value: 'Tim mạch',
+                          child: Text('Tim mạch'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'Nhi khoa',
+                          child: Text('Nhi khoa'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'Da liễu',
+                          child: Text('Da liễu'),
+                        ),
+                      ],
+                  child: Container(
+                    margin: EdgeInsets.only(top: 10),
+                    height: 35,
+                    width: 140,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      color: Color(0xff0165fc),
+                    ),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            selectedSpecialty,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          SizedBox(width: 5),
+                          Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 10),
+
+                // Container "Giới tính"
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    setState(() {
+                      selectedGender = value;
+                    });
+                  },
+                  itemBuilder:
+                      (BuildContext context) => [
+                        const PopupMenuItem(value: 'Nam', child: Text('Nam')),
+                        const PopupMenuItem(value: 'Nữ', child: Text('Nữ')),
+                        const PopupMenuItem(value: 'Khác', child: Text('Khác')),
+                      ],
+                  child: Container(
+                    margin: EdgeInsets.only(top: 10),
+                    height: 35,
+                    width: 140,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      color: Color(0xff0165fc),
+                    ),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            selectedGender,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          SizedBox(width: 5),
+                          Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           Padding(
             padding: EdgeInsets.only(left: 26, top: 20),
             child: Text(

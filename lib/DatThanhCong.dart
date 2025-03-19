@@ -1,4 +1,4 @@
-import 'package:doan_nhom06/trangchu.dart';
+import 'package:doan_nhom06/trangChu.dart';
 import 'package:flutter/material.dart';
 
 class DatThanhCong extends StatelessWidget {
@@ -43,7 +43,7 @@ class DatThanhCong extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => trangchu()),
+                  MaterialPageRoute(builder: (context) => TrangChu()),
                 );
               },
               child: Container(

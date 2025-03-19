@@ -1,10 +1,7 @@
-import 'package:doan_nhom06/DatThanhCong.dart';
-import 'package:doan_nhom06/XacNhanDatBacSi.dart';
+import 'package:doan_nhom06/trangChu.dart';
+import 'package:doan_nhom06/trangDangKy.dart';
+import 'package:doan_nhom06/trangdangnhap.dart';
 import 'package:flutter/material.dart';
-import 'package:doan_nhom06/DatBacSi.dart';
-import 'package:doan_nhom06/DatTheoBacSi.dart';
-import 'package:doan_nhom06/ThongTinBacSi.dart';
-import 'package:doan_nhom06/trangchu.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +16,7 @@ class MyApp extends StatelessWidget {
       title: 'Ứng dụng demo Flutter',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const DatBacSi(),
+      home: const DangNhap(),
     );
   }
 }
