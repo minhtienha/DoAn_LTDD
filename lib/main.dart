@@ -1,6 +1,4 @@
-import 'package:doan_nhom06/trangChu.dart';
-import 'package:doan_nhom06/trangDangKy.dart';
-import 'package:doan_nhom06/trangdangnhap.dart';
+import 'package:doan_nhom06/GiaoDien_BacSi/TrangChu.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -16,7 +14,7 @@ class MyApp extends StatelessWidget {
       title: 'Ứng dụng demo Flutter',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const DangNhap(),
+      home: const TrangChuBacSi(),
     );
   }
 }

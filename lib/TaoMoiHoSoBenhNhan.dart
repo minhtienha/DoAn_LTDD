@@ -42,7 +42,6 @@ class CreateProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Giao diện form nhập thông tin (không có xử lý dữ liệu)
             buildFormField(
               label: 'Họ và tên',
               hintText: 'Nhập họ và tên',
