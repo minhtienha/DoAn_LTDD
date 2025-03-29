@@ -1,4 +1,4 @@
-import 'package:doan_nhom06/XacNhanDatBacSi.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/XacNhanDatBacSi.dart';
 import 'package:flutter/material.dart';
 
 class DatBacSi extends StatefulWidget {

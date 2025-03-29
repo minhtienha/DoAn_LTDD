@@ -1,8 +1,8 @@
-import 'package:doan_nhom06/DatLichKhamBenh.dart';
-import 'package:doan_nhom06/HoSoBenhNhan.dart';
-import 'package:doan_nhom06/PhieuDatLich.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/DatLichKhamBenh.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/DatTheoBacSi.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/HoSoBenhNhan.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/PhieuDatLich.dart';
 import 'package:doan_nhom06/trangcauhoithuonggap.dart';
-import 'package:doan_nhom06/DatTheoBacSi.dart';
 import 'package:flutter/material.dart';
 
 class TrangChu extends StatefulWidget {

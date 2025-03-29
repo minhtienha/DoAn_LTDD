@@ -1,5 +1,5 @@
+import 'package:doan_nhom06/GiaoDien_BenhNhan/trangXacNhanTtKham.dart';
 import 'package:flutter/material.dart';
-import 'package:doan_nhom06/trangXacNhanTtKham.dart';
 
 class PersonalInfoPage extends StatefulWidget {
   final String specialty;

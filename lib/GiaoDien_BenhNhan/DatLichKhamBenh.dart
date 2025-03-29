@@ -1,5 +1,5 @@
+import 'package:doan_nhom06/GiaoDien_BenhNhan/trangTaoHoSo.dart';
 import 'package:flutter/material.dart';
-import 'package:doan_nhom06/trangTaoHoSo.dart';
 
 class DatLichKhamBenh extends StatefulWidget {
   const DatLichKhamBenh({super.key});

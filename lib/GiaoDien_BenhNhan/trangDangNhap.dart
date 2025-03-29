@@ -1,5 +1,5 @@
+import 'package:doan_nhom06/GiaoDien_BenhNhan/trangDangKy.dart';
 import 'package:doan_nhom06/trangChu.dart';
-import 'package:doan_nhom06/trangDangKy.dart';
 import 'package:flutter/material.dart';
 
 class DangNhap extends StatelessWidget {
