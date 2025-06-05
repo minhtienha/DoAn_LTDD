@@ -1,5 +1,5 @@
-import 'package:doan_nhom06/GiaoDien_BenhNhan/trangDangKy.dart';
-import 'package:doan_nhom06/trangChu.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/DangKy.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/trangChu.dart';
 import 'package:flutter/material.dart';
 
 class DangNhap extends StatelessWidget {
@@ -27,7 +27,6 @@ class DangNhap extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Banner hình ảnh
                 SizedBox(
                   width: double.infinity,
                   height: 200,

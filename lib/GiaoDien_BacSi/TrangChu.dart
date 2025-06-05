@@ -1,8 +1,9 @@
 import 'package:doan_nhom06/GiaoDien_BacSi/LichKhamBenh.dart';
 import 'package:doan_nhom06/GiaoDien_BacSi/QuanLyGioLam.dart';
 import 'package:doan_nhom06/GiaoDien_BacSi/ThongTinBacSi.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/DangKy.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/DangNhap.dart';
 import 'package:flutter/material.dart';
-import 'package:doan_nhom06/trangdangnhap.dart';
 
 class TrangChuBacSi extends StatefulWidget {
   const TrangChuBacSi({super.key});
@@ -45,7 +46,7 @@ class _TrangChuBacSiState extends State<TrangChuBacSi> {
               icon: Icon(Icons.logout, color: Colors.white),
               onPressed: () {
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => DangNhap()),
+                  MaterialPageRoute(builder: (context) => DangKy()),
                 );
               },
             ),
