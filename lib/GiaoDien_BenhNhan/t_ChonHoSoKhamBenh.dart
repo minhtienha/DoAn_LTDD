@@ -1,19 +1,83 @@
-import 'package:doan_nhom06/GiaoDien_BenhNhan/t_DatLichKhamChuyenKhoa.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:intl/intl.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/t_DatLichKhamChuyenKhoa.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_ChonBacSiKham.dart';
 
-class ChonHoSoScreen extends StatelessWidget {
-  final bool isChuyenKhoa;
-  const ChonHoSoScreen({super.key, required this.isChuyenKhoa});
+class ChonHoSoScreen extends StatefulWidget {
+  final int userId;
+  final String bookingType; // "ChuyenKhoa" hoặc "BacSi"
+  const ChonHoSoScreen({
+    super.key,
+    required this.userId,
+    required this.bookingType,
+  });
+
+  @override
+  State<ChonHoSoScreen> createState() => _ChonHoSoScreenState();
+}
+
+class _ChonHoSoScreenState extends State<ChonHoSoScreen> {
+  List<Map<String, dynamic>> danhSachHoSo = [];
+  bool isLoading = true;
+  String? errMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHoSo();
+  }
+
+  Future<void> _loadHoSo() async {
+    try {
+      final response = await http.get(
+        Uri.parse("http://localhost:5001/api/HoSoBenhNhan/${widget.userId}"),
+      );
+
+      final data = jsonDecode(response.body);
+
+      String formattedDate = " ";
+      if (data["ngaySinh"] != null) {
+        DateTime parsedDate = DateTime.parse(data["ngaySinh"]);
+        formattedDate = DateFormat("dd/MM/yyyy").format(parsedDate);
+      }
+
+      danhSachHoSo = [
+        {
+          "id": data["maHoSo"],
+          "ten": data["hoVaTen"],
+          "ngaySinh": formattedDate,
+          "moiQuanHe": data["moiQuanHe"],
+        },
+      ];
+    } catch (e) {
+      errMessage = "Không thể kết nối: $e";
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  void _navigateToNextScreen(Map<String, dynamic> hoSo) {
+    if (widget.bookingType == "ChuyenKhoa") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ChonChuyenKhoaScreen(hoSo: hoSo)),
+      );
+    } else if (widget.bookingType == "BacSi") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ChonBacSiScreen(hoSo: hoSo)),
+      );
+    } else {
+      print("Lỗi: bookingType không hợp lệ!");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    List<Map<String, String>> danhSachHoSo = [
-      {"ten": "Nguyễn Minh Trí", "sdt": "0355 876 097"},
-      {"ten": "Lê Thanh Tùng", "sdt": "0983 456 789"},
-      {"ten": "Trần Thanh Mai", "sdt": "0937 123 456"},
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Chọn hồ sơ đặt khám"),
@@ -23,57 +87,51 @@ class ChonHoSoScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: danhSachHoSo.length,
-              itemBuilder: (context, index) {
-                final hoSo = danhSachHoSo[index];
-                return Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.person,
-                      color: Colors.blueAccent,
-                      size: 36,
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : errMessage != null
+              ? Center(
+                child: Text(
+                  errMessage!,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              )
+              : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: danhSachHoSo.length,
+                itemBuilder: (context, index) {
+                  final hoSo = danhSachHoSo[index];
+                  return Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    title: Text(
-                      hoSo["ten"]!,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text("SĐT: ${hoSo["sdt"]}"),
-                    trailing: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_forward,
+                    elevation: 2,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.person,
                         color: Colors.blueAccent,
+                        size: 36,
                       ),
-                      onPressed: () {
-                        // Điều hướng theo chức năng đang chọn
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) =>
-                                    isChuyenKhoa
-                                        ? const ChonChuyenKhoaScreen()
-                                        : const ChonBacSiScreen(),
-                          ),
-                        );
-                      },
+                      title: Text(
+                        hoSo["ten"],
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        "Ngày sinh: ${hoSo["ngaySinh"]}\nQuan hệ: ${hoSo["moiQuanHe"]}",
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(
+                          Icons.arrow_forward,
+                          color: Colors.blueAccent,
+                        ),
+                        onPressed: () => _navigateToNextScreen(hoSo),
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+                  );
+                },
+              ),
     );
   }
 }

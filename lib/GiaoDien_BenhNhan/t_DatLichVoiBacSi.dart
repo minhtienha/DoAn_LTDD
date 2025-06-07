@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 't_DanhSachLichChon.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/trangChu.dart';
 
 class DatLichBacSi extends StatefulWidget {
   const DatLichBacSi({super.key});
@@ -41,7 +42,17 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xFF0165FC),
-        leading: const Icon(Icons.arrow_back, color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const TrangChu(userId: 1),
+              ),
+            );
+          },
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),

@@ -50,7 +50,7 @@ class ThanhToanScreen extends StatelessWidget {
                   );
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const TrangChu()),
+                    MaterialPageRoute(builder: (context) => const TrangChu(userId: 1)),
                   );
                 },
                 style: ElevatedButton.styleFrom(

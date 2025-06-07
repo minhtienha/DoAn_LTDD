@@ -1,8 +1,11 @@
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_DatLichVoiBacSi.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ChonBacSiScreen extends StatefulWidget {
-  const ChonBacSiScreen({super.key});
+  final Map<String, dynamic> hoSo;
+  const ChonBacSiScreen({super.key, required this.hoSo});
 
   @override
   State<ChonBacSiScreen> createState() => _ChonBacSiScreenState();
@@ -11,6 +14,64 @@ class ChonBacSiScreen extends StatefulWidget {
 class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
   String _selectedSpecialty = "Chuyên khoa";
   String _selectedGender = "Giới tính";
+
+  static const baseUrl = "http://localhost:5001/api";
+  List<String> chuyenKhoaList = [];
+  List<Map<String, dynamic>> danhSachBacSi = [];
+  bool loadingCK = true;
+  List<String> gioiTinhList = ["Nam", "Nữ"];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChuyenKhoa();
+    _loadBacSi();
+  }
+
+  // Tải danh sách chuyên khoa từ API
+  Future<void> _loadChuyenKhoa() async {
+    setState(() {
+      loadingCK = true;
+    });
+    final resp = await http.get(Uri.parse("$baseUrl/ChuyenKhoa"));
+    if (resp.statusCode == 200) {
+      final js = jsonDecode(resp.body) as List;
+      chuyenKhoaList =
+          js
+              .whereType<Map<String, dynamic>>()
+              .where((m) => m.containsKey("tenChuyenKhoa"))
+              .map((m) => m["tenChuyenKhoa"] as String)
+              .toList();
+    } else {
+      throw Exception("Lỗi tải dữ liệu: ${resp.statusCode}");
+    }
+    setState(() {
+      loadingCK = false;
+    });
+  }
+
+  // Tải danh sách bác sĩ
+  Future<void> _loadBacSi() async {
+    final resp = await http.get(Uri.parse("$baseUrl/BacSi"));
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body) as List;
+      danhSachBacSi =
+          data
+              .map(
+                (e) => {
+                  "id": e["maBacSi"],
+                  "ten": e["hoVaTen"],
+                  "chuyenKhoa": e["chuyenKhoa"]["tenChuyenKhoa"],
+                  "lichLamViec": e["lichLamViec"],
+                  "gioiThieu": e["gioiThieu"],
+                  "danhGia": e["danhGiaTrungBinh"],
+                },
+              )
+              .toList();
+    } else {
+      throw Exception("Lỗi tải dữ liệu: ${resp.statusCode}");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,21 +114,20 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
                 PopupMenuButton<String>(
                   onSelected:
                       (value) => setState(() => _selectedSpecialty = value),
-                  itemBuilder:
-                      (context) => [
+                  itemBuilder: (context) {
+                    if (loadingCK) {
+                      return [
                         const PopupMenuItem(
-                          value: "Nội khoa",
-                          child: Text("Nội khoa"),
+                          value: "Đang tải...",
+                          child: Text("Đang tải..."),
                         ),
-                        const PopupMenuItem(
-                          value: "Nhi khoa",
-                          child: Text("Nhi khoa"),
-                        ),
-                        const PopupMenuItem(
-                          value: "Tim mạch",
-                          child: Text("Tim mạch"),
-                        ),
-                      ],
+                      ];
+                    }
+                    return chuyenKhoaList.map((ck) {
+                      return PopupMenuItem(value: ck, child: Text(ck));
+                    }).toList();
+                  },
+
                   child: Container(
                     height: 35,
                     width: 140,
@@ -129,12 +189,10 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: 5,
+              itemCount: danhSachBacSi.length,
+              shrinkWrap: true,
               itemBuilder: (context, index) {
-                bool isMorning = index % 2 == 0;
-                Color sessionColor = isMorning ? Colors.green : Colors.orange;
-                String sessionText = isMorning ? "Buổi sáng" : "Buổi chiều";
-
+                final bacSi = danhSachBacSi[index];
                 return Card(
                   elevation: 5,
                   shape: RoundedRectangleBorder(
@@ -165,7 +223,7 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "Bác sĩ Nguyễn Văn A",
+                                    bacSi["hoVaTen"],
                                     style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
@@ -173,14 +231,7 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
                                   ),
                                   const SizedBox(height: 5),
                                   Text(
-                                    "Chuyên khoa: Nội khoa",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                  Text(
-                                    "Giới tính: Nam",
+                                    bacSi["chuyenKhoa"],
                                     style: const TextStyle(
                                       fontSize: 16,
                                       color: Colors.black54,
@@ -190,16 +241,6 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 8),
-
-                        Text(
-                          sessionText,
-                          style: TextStyle(
-                            color: sessionColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
                         ),
                         const SizedBox(height: 8),
 
