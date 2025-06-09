@@ -1,233 +1,410 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class LichSuKhamScreen extends StatefulWidget {
-  const LichSuKhamScreen({super.key});
+  final int maNguoiDung;
+  const LichSuKhamScreen({super.key, required this.maNguoiDung});
 
   @override
   State<LichSuKhamScreen> createState() => _LichSuKhamScreenState();
 }
 
 class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
-  String _selectedProfile = "Tất cả hồ sơ";
-  String _selectedStatus = "Đã thanh toán";
+  List<Map<String, dynamic>> _profiles = [];
+  int? _selectedMaHoSo;
+
+  String _selectedStatus = 'Tất cả';
   DateTime? _startDate, _endDate;
   bool _sortNewestFirst = true;
 
-  final List<String> profiles = [
-    "Tất cả hồ sơ",
-    "Nguyễn Văn B",
-    "Lê Minh Anh",
-    "Trần Thanh Mai",
-  ];
-  final List<String> statusList = [
-    "Đã thanh toán",
-    "Đã tiếp nhận",
-    "Đã khám",
-    "Đã huỷ",
-  ];
+  List<Map<String, dynamic>> _history = [];
 
-  Future<void> _chonNgay(BuildContext context, bool isStartDate) async {
-    final pickedDate = await showDatePicker(
+  late Future<void> _initialLoad;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialLoad = _loadProfiles();
+  }
+
+  Future<void> _loadProfiles() async {
+    final url =
+        'http://localhost:5001/api/HoSoBenhNhan/NguoiDung/${widget.maNguoiDung}';
+    final resp = await http.get(Uri.parse(url));
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body);
+      if (data is List) {
+        _profiles = List<Map<String, dynamic>>.from(data);
+      }
+    }
+    if (_profiles.isNotEmpty) {
+      _selectedMaHoSo = _profiles.first['maHoSo'] as int;
+      await _loadHistory();
+    }
+  }
+
+  Future<void> _loadHistory() async {
+    if (_selectedMaHoSo == null) {
+      _history = [];
+      return;
+    }
+    final url = 'http://localhost:5001/api/LichKham/HoSo/$_selectedMaHoSo';
+    final resp = await http.get(Uri.parse(url));
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body);
+      if (data is List) {
+        _history = List<Map<String, dynamic>>.from(data);
+      }
+    } else {
+      _history = [];
+    }
+  }
+
+  Future<void> _onProfileChanged(int? newMaHoSo) async {
+    if (newMaHoSo == null) return;
+    setState(() => _selectedMaHoSo = newMaHoSo);
+    await _loadHistory();
+    setState(() {});
+  }
+
+  Future<void> _huyLich(int maLichKham) async {
+    final confirm = await showDialog<bool>(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Xác nhận'),
+            content: const Text('Bạn có chắc muốn huỷ lịch khám này?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Không'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Huỷ'),
+              ),
+            ],
+          ),
     );
-    if (pickedDate != null) {
-      setState(() {
-        if (isStartDate) {
-          _startDate = pickedDate;
-        } else {
-          _endDate = pickedDate;
-        }
-      });
+    if (confirm != true) return;
+
+    final url = 'http://localhost:5001/api/LichKham/Huy/$maLichKham';
+    final resp = await http.put(Uri.parse(url));
+    if (resp.statusCode == 200) {
+      await _loadHistory();
+      setState(() {});
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã huỷ lịch thành công.')));
+    } else {
+      String message = 'Huỷ lịch thất bại.';
+      try {
+        final data = jsonDecode(resp.body);
+        message = data['message'] ?? message;
+      } catch (_) {}
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  Color statusColor(String status) {
+    switch (status) {
+      case "Đã thanh toán":
+        return Colors.green;
+      case "Đã huỷ":
+        return Colors.red;
+      default:
+        return Colors.orange;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final statusOptions = ['Tất cả', 'Đã thanh toán', 'Đã hủy'];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "Lịch sử khám",
+          'Lịch sử khám',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xFF0165FC),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list, color: Colors.white),
-            onPressed: () {
-              setState(() => _sortNewestFirst = !_sortNewestFirst);
-            },
+            icon: Icon(
+              _sortNewestFirst ? Icons.arrow_downward : Icons.arrow_upward,
+              color: Colors.white,
+            ),
+            onPressed:
+                () => setState(() => _sortNewestFirst = !_sortNewestFirst),
+            tooltip: _sortNewestFirst ? 'Mới nhất trước' : 'Cũ nhất trước',
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Chọn hồ sơ bệnh nhân
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: DropdownButtonFormField<String>(
-              value: _selectedProfile,
-              items:
-                  profiles
-                      .map(
-                        (profile) => DropdownMenuItem(
-                          value: profile,
-                          child: Text(profile),
-                        ),
-                      )
-                      .toList(),
-              onChanged: (value) => setState(() => _selectedProfile = value!),
-              decoration: const InputDecoration(
-                labelText: "Chọn hồ sơ",
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
-
-          // Chọn trạng thái với ScrollHorizon
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              children:
-                  statusList.map((status) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: ChoiceChip(
-                        label: Text(status),
-                        selected: _selectedStatus == status,
-                        onSelected:
-                            (selected) => setState(
-                              () =>
-                                  _selectedStatus =
-                                      selected ? status : "Tất cả",
-                            ),
+      body: FutureBuilder<void>(
+        future: _initialLoad,
+        builder: (ctx, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          // Áp filter & sort lên _history
+          var filtered =
+              _history.where((item) {
+                if (_selectedStatus != 'Tất cả' &&
+                    item['trangThai'] != _selectedStatus)
+                  return false;
+                final dt = DateTime.parse(item['thoiGianKham']);
+                if (_startDate != null &&
+                    dt.isBefore(
+                      DateTime(
+                        _startDate!.year,
+                        _startDate!.month,
+                        _startDate!.day,
                       ),
-                    );
-                  }).toList(),
-            ),
-          ),
-
-          // Bộ lọc thời gian
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                // Chọn ngày bắt đầu
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _chonNgay(context, true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.blue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    )) {
+                  return false;
+                }
+                if (_endDate != null &&
+                    dt.isAfter(
+                      DateTime(
+                        _endDate!.year,
+                        _endDate!.month,
+                        _endDate!.day,
+                        23,
+                        59,
+                        59,
                       ),
-                      side: const BorderSide(color: Colors.blue),
-                    ),
-                    child: Text(
-                      _startDate != null
-                          ? "${_startDate!.day}/${_startDate!.month}/${_startDate!.year}"
-                          : "Từ ngày",
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
+                    )) {
+                  return false;
+                }
+                return true;
+              }).toList();
 
-                // Chữ "Đến"
-                const Text(
-                  "⮕",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 8),
-
-                // Chọn ngày kết thúc
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _chonNgay(context, false),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.blue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      side: const BorderSide(color: Colors.blue),
-                    ),
-                    child: Text(
-                      _endDate != null
-                          ? "${_endDate!.day}/${_endDate!.month}/${_endDate!.year}"
-                          : "Đến ngày",
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-
-                // Bộ lọc sắp xếp
-                DropdownButton<String>(
-                  value: _sortNewestFirst ? "Mới nhất" : "Cũ nhất",
+          filtered.sort((a, b) {
+            final da = DateTime.parse(a['ngayTao']);
+            final db = DateTime.parse(b['ngayTao']);
+            return db.compareTo(da); // Mới nhất trước
+          });
+          print(_history);
+          return Column(
+            children: [
+              // Chọn hồ sơ
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: DropdownButtonFormField<int>(
+                  value: _selectedMaHoSo,
                   items:
-                      ["Mới nhất", "Cũ nhất"]
+                      _profiles
                           .map(
-                            (sortType) => DropdownMenuItem(
-                              value: sortType,
-                              child: Text(sortType),
+                            (p) => DropdownMenuItem(
+                              value: p['maHoSo'] as int,
+                              child: Text(p['hoVaTen'] ?? ''),
                             ),
                           )
                           .toList(),
-                  onChanged: (value) {
-                    setState(() => _sortNewestFirst = value == "Mới nhất");
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          // Danh sách lịch sử khám
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: 2,
-              itemBuilder: (context, index) {
-                return Card(
-                  color: const Color.fromARGB(255, 216, 243, 255),
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Nguyễn Văn B",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text("18-03-2025 - 10:00 AM"),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Trạng thái: ${statusList[index % statusList.length]}",
-                            ),
-                            ElevatedButton(
-                              onPressed: () {},
-                              child: const Text("Xem chi tiết"),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  onChanged: _onProfileChanged,
+                  decoration: const InputDecoration(
+                    labelText: 'Chọn hồ sơ',
+                    border: OutlineInputBorder(),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+                ),
+              ),
+              // Lọc trạng thái
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: DropdownButtonFormField<String>(
+                  value: _selectedStatus,
+                  items:
+                      statusOptions
+                          .map(
+                            (s) => DropdownMenuItem(value: s, child: Text(s)),
+                          )
+                          .toList(),
+                  onChanged: (v) => setState(() => _selectedStatus = v!),
+                  decoration: const InputDecoration(
+                    labelText: 'Trạng thái',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              // Danh sách lịch sử
+              Expanded(
+                child:
+                    filtered.isEmpty
+                        ? const Center(child: Text('Không có bản ghi phù hợp.'))
+                        : ListView.builder(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: filtered.length,
+                          itemBuilder: (c, i) {
+                            final item = filtered[i];
+                            final dt = DateTime.parse(item['thoiGianKham']);
+                            final dateStr =
+                                '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} '
+                                '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+                            final hoSo = item['hoSoBenhNhan'] ?? {};
+                            final bacSi = item['bacSi'] ?? {};
+
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          backgroundColor: Colors.blue[200],
+                                          radius: 22,
+                                          child: Icon(
+                                            Icons.person,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            bacSi['hoVaTen'] ?? '---',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: Color(0xFF0165FC),
+                                            ),
+                                          ),
+                                        ),
+                                        Chip(
+                                          label: Text(
+                                            item['trangThai'] ?? '',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          backgroundColor: statusColor(
+                                            item['trangThai'] ?? '',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    // Thông tin lịch
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.calendar_today,
+                                          size: 18,
+                                          color: Colors.grey,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          dateStr,
+                                          style: const TextStyle(fontSize: 15),
+                                        ),
+                                      ],
+                                    ),
+                                    if ((item['khungGio'] ?? '').isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 6.0,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.access_time,
+                                              size: 18,
+                                              color: Colors.grey,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              item['khungGio'] ?? '',
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 6.0),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.person,
+                                            size: 18,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            hoSo['hoVaTen'] ?? '',
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 6.0),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.attach_money,
+                                            size: 18,
+                                            color: Colors.green,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            "${item['gia']} đ",
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Nút hủy lịch
+                                    if (item['trangThai'] != 'Đã huỷ')
+                                      Align(
+                                        alignment: Alignment.bottomRight,
+                                        child: TextButton.icon(
+                                          icon: const Icon(
+                                            Icons.cancel,
+                                            color: Colors.red,
+                                          ),
+                                          label: const Text(
+                                            'Huỷ lịch',
+                                            style: TextStyle(
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          onPressed:
+                                              () =>
+                                                  _huyLich(item['maLichKham']),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

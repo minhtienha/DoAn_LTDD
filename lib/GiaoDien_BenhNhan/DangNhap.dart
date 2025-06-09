@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:doan_nhom06/GiaoDienAdmin/TrangChuAdmin.dart';
+import 'package:doan_nhom06/GiaoDien_BacSi/TrangChu.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:doan_nhom06/GiaoDien_BenhNhan/DangKy.dart';
@@ -39,48 +41,55 @@ class _DangNhapState extends State<DangNhap> {
       _errorMessage = null;
     });
 
-    try {
-      // Lưu ý: với Android emulator, sử dụng 10.0.2.2 thay cho localhost
-      final uri = Uri.parse("http://localhost:5001/api/NguoiDung");
-      final response = await http.get(uri);
+    // Không dùng try-catch nữa
+    final uri = Uri.parse("http://localhost:5001/api/NguoiDung");
+    final response = await http.get(uri);
 
-      if (response.statusCode == 200) {
-        final List<dynamic> users = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      final List<dynamic> users = jsonDecode(response.body);
 
-        // Tìm trong danh sách người dùng xem có user nào khớp email + mật khẩu không
-        final matchedUser = users.firstWhere(
-          (u) =>
-              u['email'].toString().toLowerCase() == email.toLowerCase() &&
-              u['matKhauMaHoa'].toString() == password,
-          orElse: () => null,
-        );
+      final matchedUser = users.firstWhere(
+        (u) =>
+            u['email'].toString().toLowerCase() == email.toLowerCase() &&
+            u['matKhau'].toString() == password,
+        orElse: () => null,
+      );
 
-        if (matchedUser != null) {
-          final int id = matchedUser['maNguoiDung'] as int;
+      if (matchedUser != null) {
+        final int id = matchedUser['maNguoiDung'] as int;
+        final String role = matchedUser['vaiTro'] ?? '';
+
+        if (role == 'bệnh nhân') {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => TrangChu(userId: id)),
           );
-        } else {
-          setState(() {
-            _errorMessage = "Email hoặc mật khẩu không đúng.";
-          });
+        } else if (role == 'bác sĩ') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => TrangChuBacSi()),
+          );
+        } else if (role == 'Admin') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => TrangChuAdmin()),
+          );
         }
       } else {
         setState(() {
-          _errorMessage =
-              "Lỗi server: ${response.statusCode}. Vui lòng thử lại sau.";
+          _errorMessage = "Email hoặc mật khẩu không đúng.";
         });
       }
-    } catch (e) {
+    } else {
       setState(() {
-        _errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra lại.";
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
+        _errorMessage =
+            "Lỗi server: ${response.statusCode}. Vui lòng thử lại sau.";
       });
     }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override

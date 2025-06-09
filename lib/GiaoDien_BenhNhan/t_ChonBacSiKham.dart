@@ -5,79 +5,161 @@ import 'dart:convert';
 
 class ChonBacSiScreen extends StatefulWidget {
   final Map<String, dynamic> hoSo;
-  const ChonBacSiScreen({super.key, required this.hoSo});
+  final int userId;
+  final List<Map<String, dynamic>> selectedBookings; // Thêm dòng này
+  const ChonBacSiScreen({
+    super.key,
+    required this.hoSo,
+    required this.userId,
+    required this.selectedBookings,
+  });
 
   @override
   State<ChonBacSiScreen> createState() => _ChonBacSiScreenState();
 }
 
+String _combineSchedule(String days, String times) {
+  final dList = days.split(';').map((e) => e.trim()).toList();
+  final tList = times.split(';').map((e) => e.trim()).toList();
+  final out = <String>[];
+  for (int i = 0; i < dList.length && i < tList.length; i++) {
+    out.add("${dList[i]}: ${tList[i]}");
+  }
+  return out.join(";");
+}
+
 class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
   String _selectedSpecialty = "Chuyên khoa";
-  String _selectedGender = "Giới tính";
+  String _selectedGender = "Tất cả";
+
+  // Nút bộ lọc
+  Widget _buildFilterButton(String label) {
+    return Container(
+      height: 35,
+      width: 140,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        color: const Color(0xFF0165FC),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        "$label ▼",
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+      ),
+    );
+  }
 
   static const baseUrl = "http://localhost:5001/api";
-  List<String> chuyenKhoaList = [];
+  List<Map<String, dynamic>> chuyenKhoaList = [];
   List<Map<String, dynamic>> danhSachBacSi = [];
   bool loadingCK = true;
   List<String> gioiTinhList = ["Nam", "Nữ"];
 
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> filteredBacSi = [];
+
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_filterBacSi);
     _loadChuyenKhoa();
     _loadBacSi();
   }
 
-  // Tải danh sách chuyên khoa từ API
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadChuyenKhoa() async {
-    setState(() {
-      loadingCK = true;
-    });
+    setState(() => loadingCK = true);
     final resp = await http.get(Uri.parse("$baseUrl/ChuyenKhoa"));
     if (resp.statusCode == 200) {
       final js = jsonDecode(resp.body) as List;
       chuyenKhoaList =
           js
               .whereType<Map<String, dynamic>>()
-              .where((m) => m.containsKey("tenChuyenKhoa"))
-              .map((m) => m["tenChuyenKhoa"] as String)
+              .where(
+                (m) => m.containsKey("tenChuyenKhoa") && m.containsKey("gia"),
+              )
+              .map(
+                (m) => {
+                  "tenChuyenKhoa": m["tenChuyenKhoa"] as String,
+                  "gia": m["gia"] as num,
+                },
+              )
               .toList();
     } else {
-      throw Exception("Lỗi tải dữ liệu: ${resp.statusCode}");
+      throw Exception("Lỗi tải Chuyên khoa: ${resp.statusCode}");
     }
-    setState(() {
-      loadingCK = false;
-    });
+    setState(() => loadingCK = false);
   }
 
-  // Tải danh sách bác sĩ
   Future<void> _loadBacSi() async {
     final resp = await http.get(Uri.parse("$baseUrl/BacSi"));
     if (resp.statusCode == 200) {
       final data = jsonDecode(resp.body) as List;
       danhSachBacSi =
-          data
-              .map(
-                (e) => {
-                  "id": e["maBacSi"],
-                  "ten": e["hoVaTen"],
-                  "chuyenKhoa": e["chuyenKhoa"]["tenChuyenKhoa"],
-                  "lichLamViec": e["lichLamViec"],
-                  "gioiThieu": e["gioiThieu"],
-                  "danhGia": e["danhGiaTrungBinh"],
-                },
-              )
-              .toList();
+          data.map((e) {
+            // Chuẩn hóa giá trị giới tính
+            final rawGt = (e['gioiTinh'] as String? ?? '').trim().toLowerCase();
+            String normalizedGt;
+            if (rawGt == 'nam') {
+              normalizedGt = 'Nam';
+            } else if (rawGt == 'nữ' || rawGt == 'nu') {
+              normalizedGt = 'Nữ';
+            } else {
+              normalizedGt = '';
+            }
+            return {
+              'id': e['maBacSi'],
+              'ten': e['hoVaTen'],
+              'chuyenKhoa': e['chuyenKhoa']['tenChuyenKhoa'],
+              'gia': e['chuyenKhoa']['gia'],
+              'lichLamViec': _combineSchedule(
+                e['ngayLamViec'] ?? '',
+                e['khungGioLamViec'] ?? '',
+              ),
+              'gioiThieu': e['gioiThieu'],
+              'danhGia': e['danhGiaTrungBinh'],
+              'hinhAnh': e['hinhAnh'],
+              'gioiTinh': normalizedGt,
+            };
+          }).toList();
+      // Debug: in ra các giá trị giới tính khả dụng
+      debugPrint(
+        'Available genders: ${danhSachBacSi.map((bs) => bs['gioiTinh']).toSet()}',
+      );
+      _filterBacSi();
     } else {
-      throw Exception("Lỗi tải dữ liệu: ${resp.statusCode}");
+      throw Exception("Lỗi tải Bác sĩ: ${resp.statusCode}");
     }
+  }
+
+  void _filterBacSi() {
+    final keyword = _searchController.text.toLowerCase().trim();
+    setState(() {
+      filteredBacSi =
+          danhSachBacSi.where((bs) {
+            final matchName =
+                keyword.isEmpty || bs['ten'].toLowerCase().contains(keyword);
+            final matchCK =
+                _selectedSpecialty == 'Chuyên khoa' ||
+                bs['chuyenKhoa'] == _selectedSpecialty;
+            final matchGender =
+                _selectedGender == 'Tất cả' ||
+                bs['gioiTinh'] == _selectedGender;
+            return matchName && matchCK && matchGender;
+          }).toList();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Chọn bác sĩ", style: TextStyle(color: Colors.white)),
+        title: const Text('Chọn bác sĩ', style: TextStyle(color: Colors.white)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -88,111 +170,96 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 10),
-
-          // Ô tìm kiếm bác sĩ
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
+              controller: _searchController,
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.grey[200],
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                hintText: "Tìm nhanh tên bác sĩ",
+                hintText: 'Tìm nhanh tên bác sĩ',
                 prefixIcon: const Icon(Icons.search),
               ),
             ),
           ),
-
-          // Bộ lọc chuyên khoa & giới tính
           Padding(
             padding: const EdgeInsets.only(right: 26, top: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 PopupMenuButton<String>(
-                  onSelected:
-                      (value) => setState(() => _selectedSpecialty = value),
-                  itemBuilder: (context) {
+                  onSelected: (value) {
+                    setState(() => _selectedSpecialty = value);
+                    _filterBacSi();
+                  },
+                  itemBuilder: (ctx) {
                     if (loadingCK) {
                       return [
-                        const PopupMenuItem(
-                          value: "Đang tải...",
-                          child: Text("Đang tải..."),
+                        const PopupMenuItem<String>(
+                          value: 'Chuyên khoa',
+                          child: Text('Chuyên khoa'),
                         ),
                       ];
                     }
-                    return chuyenKhoaList.map((ck) {
-                      return PopupMenuItem(value: ck, child: Text(ck));
-                    }).toList();
-                  },
-
-                  child: Container(
-                    height: 35,
-                    width: 140,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      color: const Color(0xFF0165FC),
-                    ),
-                    child: Center(
-                      child: Text(
-                        "$_selectedSpecialty ▼",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
+                    final items = <PopupMenuEntry<String>>[
+                      const PopupMenuItem<String>(
+                        value: 'Chuyên khoa',
+                        child: Text('Chuyên khoa'),
                       ),
-                    ),
-                  ),
+                    ];
+                    items.addAll(
+                      chuyenKhoaList.map((ck) {
+                        return PopupMenuItem<String>(
+                          value: ck['tenChuyenKhoa'],
+                          child: Text(ck['tenChuyenKhoa']),
+                        );
+                      }),
+                    );
+                    return items;
+                  },
+                  child: _buildFilterButton(_selectedSpecialty),
                 ),
                 const SizedBox(width: 10),
                 PopupMenuButton<String>(
-                  onSelected:
-                      (value) => setState(() => _selectedGender = value),
-                  itemBuilder:
-                      (context) => [
-                        const PopupMenuItem(value: "Nam", child: Text("Nam")),
-                        const PopupMenuItem(value: "Nữ", child: Text("Nữ")),
-                      ],
-                  child: Container(
-                    height: 35,
-                    width: 140,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      color: const Color(0xFF0165FC),
-                    ),
-                    child: Center(
-                      child: Text(
-                        "$_selectedGender ▼",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
+                  onSelected: (value) {
+                    setState(() => _selectedGender = value);
+                    _filterBacSi();
+                  },
+                  itemBuilder: (_) {
+                    final items = <PopupMenuEntry<String>>[
+                      const PopupMenuItem<String>(
+                        value: 'Tất cả',
+                        child: Text('Tất cả'),
                       ),
-                    ),
-                  ),
+                    ];
+                    items.addAll(
+                      gioiTinhList.map((g) {
+                        return PopupMenuItem<String>(value: g, child: Text(g));
+                      }),
+                    );
+                    return items;
+                  },
+                  child: _buildFilterButton(_selectedGender),
                 ),
               ],
             ),
           ),
-
           const Padding(
             padding: EdgeInsets.only(left: 26, top: 20),
             child: Text(
-              "Danh sách bác sĩ",
+              'Danh sách bác sĩ',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
-
-          // Danh sách bác sĩ
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: danhSachBacSi.length,
-              shrinkWrap: true,
+              itemCount: filteredBacSi.length,
               itemBuilder: (context, index) {
-                final bacSi = danhSachBacSi[index];
+                final bacSi = filteredBacSi[index];
                 return Card(
                   elevation: 5,
                   shape: RoundedRectangleBorder(
@@ -209,10 +276,11 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
                               height: 100,
                               width: 80,
                               decoration: BoxDecoration(
-                                shape: BoxShape.rectangle,
                                 borderRadius: BorderRadius.circular(8),
                                 image: const DecorationImage(
-                                  image: AssetImage('assets/images/bs1.jpg'),
+                                  image: AssetImage(
+                                    "assets/images/my-avatar.jpg",
+                                  ),
                                   fit: BoxFit.cover,
                                 ),
                               ),
@@ -223,7 +291,7 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    bacSi["hoVaTen"],
+                                    bacSi['ten'],
                                     style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
@@ -231,10 +299,70 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
                                   ),
                                   const SizedBox(height: 5),
                                   Text(
-                                    bacSi["chuyenKhoa"],
+                                    bacSi['chuyenKhoa'],
                                     style: const TextStyle(
                                       fontSize: 16,
                                       color: Colors.black54,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        WidgetSpan(
+                                          child: Icon(
+                                            Icons.info_outline,
+                                            color: Colors.blueAccent,
+                                            size: 18,
+                                          ),
+                                        ),
+                                        const WidgetSpan(
+                                          child: SizedBox(width: 6),
+                                        ),
+                                        TextSpan(
+                                          text: bacSi['gioiThieu'],
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        WidgetSpan(
+                                          child: Icon(
+                                            Icons.schedule,
+                                            color: Colors.green,
+                                            size: 18,
+                                          ),
+                                        ),
+                                        const WidgetSpan(
+                                          child: SizedBox(width: 6),
+                                        ),
+                                        const TextSpan(
+                                          text: 'Lịch làm việc:',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        const TextSpan(text: '\n'),
+                                        TextSpan(
+                                          text: bacSi['lichLamViec'].replaceAll(
+                                            ';',
+                                            '\n',
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -243,8 +371,6 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-
-                        // Nút chọn bác sĩ
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -252,7 +378,14 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const DatLichBacSi(),
+                                  builder:
+                                      (context) => DatLichBacSi(
+                                        hoSo: widget.hoSo,
+                                        bacSi: bacSi,
+                                        userId: widget.userId,
+                                        selectedBookings:
+                                            widget.selectedBookings,
+                                      ),
                                 ),
                               );
                             },
@@ -261,7 +394,7 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
                               foregroundColor: Colors.white,
                             ),
                             child: const Text(
-                              "Chọn bác sĩ",
+                              'Chọn bác sĩ',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

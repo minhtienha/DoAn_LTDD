@@ -1,7 +1,11 @@
+import 'package:doan_nhom06/GiaoDien_BenhNhan/t_HoSoBenhNhan.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class TaoHoSoBenhNhanScreen extends StatefulWidget {
-  const TaoHoSoBenhNhanScreen({super.key});
+  final int maNguoiDung;
+  const TaoHoSoBenhNhanScreen({super.key, required this.maNguoiDung});
 
   @override
   State<TaoHoSoBenhNhanScreen> createState() => _TaoHoSoBenhNhanScreenState();
@@ -11,220 +15,180 @@ class _TaoHoSoBenhNhanScreenState extends State<TaoHoSoBenhNhanScreen> {
   String? _gioiTinh;
   DateTime? _ngaySinh;
   final _hoTenController = TextEditingController();
-  final _soDienThoaiController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _thanhPhoController = TextEditingController();
+  final _moiQuanHeController = TextEditingController(text: 'Bản thân');
 
-  Future<void> _chonNgaySinh(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
+  bool _loading = false;
+
+  Future<void> _chonNgaySinh(BuildContext ctx) async {
+    final picked = await showDatePicker(
+      context: ctx,
+      initialDate: DateTime(1990),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
-    if (picked != null) {
-      setState(() => _ngaySinh = picked);
-    }
+    if (picked != null) setState(() => _ngaySinh = picked);
   }
 
   void _chonGioiTinh() {
     showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return Wrap(
-          children:
-              ['Nam', 'Nữ']
-                  .map(
-                    (gioiTinh) => ListTile(
-                      title: Text(gioiTinh),
-                      onTap: () {
-                        setState(() {
-                          _gioiTinh = gioiTinh;
-                          Navigator.pop(context);
-                        });
-                      },
-                    ),
-                  )
-                  .toList(),
-        );
-      },
+      builder:
+          (_) => Wrap(
+            children:
+                ['Nam', 'Nữ'].map((gt) {
+                  return ListTile(
+                    title: Text(gt),
+                    onTap: () {
+                      setState(() => _gioiTinh = gt);
+                      Navigator.pop(context);
+                    },
+                  );
+                }).toList(),
+          ),
     );
+  }
+
+  String? _validate() {
+    if (_hoTenController.text.trim().isEmpty)
+      return 'Vui lòng nhập tên bệnh nhân';
+    if (_ngaySinh == null) return 'Vui lòng chọn ngày sinh';
+    if (_gioiTinh == null) return 'Vui lòng chọn giới tính';
+    if (_moiQuanHeController.text.trim().isEmpty)
+      return 'Vui lòng nhập mối quan hệ';
+    return null;
+  }
+
+  Future<void> _submit() async {
+    final err = _validate();
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      return;
+    }
+
+    setState(() => _loading = true);
+    final body = {
+      "maNguoiDung": widget.maNguoiDung,
+      "hoVaTen": _hoTenController.text.trim(),
+      "ngaySinh":
+          "${_ngaySinh!.year}-${_ngaySinh!.month.toString().padLeft(2, '0')}-${_ngaySinh!.day.toString().padLeft(2, '0')}",
+      "gioiTinh": _gioiTinh,
+      "moiQuanHe": _moiQuanHeController.text.trim(),
+      "ngayTao": DateTime.now().toIso8601String(),
+    };
+
+    try {
+      final resp = await http.post(
+        Uri.parse('http://localhost:5001/api/HoSoBenhNhan'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+      setState(() => _loading = false);
+
+      if (resp.statusCode >= 200 && resp.statusCode < 300) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) =>
+                    HoSoBenhNhanScreen(maNguoiDung: widget.maNguoiDung),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi server: ${resp.body}')));
+      }
+    } catch (e) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi kết nối: $e')));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Tạo hồ sơ bệnh nhân",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Tạo hồ sơ bệnh nhân'),
         backgroundColor: const Color(0xFF0165FC),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
-      backgroundColor: const Color.fromARGB(255, 248, 248, 248),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                "Họ và tên *",
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                'Họ và tên *',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextField(
                 controller: _hoTenController,
-                decoration: InputDecoration(
-                  hintText: "Nhập họ và tên",
-                  filled: true,
+                decoration: const InputDecoration(
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  filled: true,
                 ),
               ),
 
               const SizedBox(height: 16),
               const Text(
-                "Số điện thoại *",
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                'Ngày sinh *',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextField(
-                controller: _soDienThoaiController,
+                readOnly: true,
+                onTap: () => _chonNgaySinh(context),
                 decoration: InputDecoration(
-                  hintText: "Nhập số điện thoại",
-                  prefixText: "+84 ",
-                  filled: true,
+                  hintText:
+                      _ngaySinh != null
+                          ? '${_ngaySinh!.day}/${_ngaySinh!.month}/${_ngaySinh!.year}'
+                          : 'Chọn ngày sinh',
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  filled: true,
+                  suffixIcon: const Icon(Icons.calendar_today),
                 ),
               ),
 
               const SizedBox(height: 16),
               const Text(
-                "Email ",
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                'Giới tính *',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextField(
-                controller: _emailController,
+                readOnly: true,
+                onTap: _chonGioiTinh,
                 decoration: InputDecoration(
-                  hintText: "Nhập email",
-                  filled: true,
+                  hintText: _gioiTinh ?? 'Chọn giới tính',
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  filled: true,
+                  suffixIcon: const Icon(Icons.arrow_drop_down),
                 ),
-              ),
-
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Ngày sinh *",
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        TextField(
-                          readOnly: true,
-                          onTap: () => _chonNgaySinh(context),
-                          decoration: InputDecoration(
-                            hintText:
-                                _ngaySinh != null
-                                    ? "${_ngaySinh!.day}/${_ngaySinh!.month}/${_ngaySinh!.year}"
-                                    : "Ngày / Tháng / Năm",
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            suffixIcon: const Icon(
-                              Icons.calendar_today,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Giới tính *",
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        TextField(
-                          readOnly: true,
-                          onTap: _chonGioiTinh,
-                          decoration: InputDecoration(
-                            hintText: _gioiTinh ?? "Giới tính",
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            suffixIcon: const Icon(
-                              Icons.arrow_drop_down,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ),
 
               const SizedBox(height: 16),
               const Text(
-                "Địa chỉ thường trú *",
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                'Mối quan hệ *',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextField(
-                controller: _thanhPhoController,
-                decoration: InputDecoration(
-                  hintText: "Nhập địa chỉ thường trú",
-                  filled: true,
+                controller: _moiQuanHeController,
+                decoration: const InputDecoration(
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  filled: true,
                 ),
               ),
 
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                  backgroundColor: const Color(0xFF0165FC),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  "Tạo mới hồ sơ",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _submit,
+                  child:
+                      _loading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Tạo hồ sơ'),
                 ),
               ),
             ],

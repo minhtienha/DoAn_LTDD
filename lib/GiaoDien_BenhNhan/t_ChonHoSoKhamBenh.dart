@@ -31,26 +31,31 @@ class _ChonHoSoScreenState extends State<ChonHoSoScreen> {
 
   Future<void> _loadHoSo() async {
     try {
-      final response = await http.get(
-        Uri.parse("http://localhost:5001/api/HoSoBenhNhan/${widget.userId}"),
+      final resp = await http.get(
+        Uri.parse(
+          "http://localhost:5001/api/HoSoBenhNhan/NguoiDung/${widget.userId}",
+        ),
       );
 
-      final data = jsonDecode(response.body);
+      if (resp.statusCode == 200) {
+        // 1. Giải mã thành List
+        final List jsonList = jsonDecode(resp.body) as List;
 
-      String formattedDate = " ";
-      if (data["ngaySinh"] != null) {
-        DateTime parsedDate = DateTime.parse(data["ngaySinh"]);
-        formattedDate = DateFormat("dd/MM/yyyy").format(parsedDate);
+        // 2. Map từng phần tử thành Map<String,dynamic>
+        danhSachHoSo =
+            jsonList.map((item) {
+              final parsed =
+                  DateTime.tryParse(item["ngaySinh"] ?? "") ?? DateTime.now();
+              return {
+                "id": item["maHoSo"],
+                "ten": item["hoVaTen"],
+                "ngaySinh": DateFormat("dd/MM/yyyy").format(parsed),
+                "moiQuanHe": item["moiQuanHe"],
+              };
+            }).toList();
+      } else {
+        errMessage = "Server trả về lỗi ${resp.statusCode}";
       }
-
-      danhSachHoSo = [
-        {
-          "id": data["maHoSo"],
-          "ten": data["hoVaTen"],
-          "ngaySinh": formattedDate,
-          "moiQuanHe": data["moiQuanHe"],
-        },
-      ];
     } catch (e) {
       errMessage = "Không thể kết nối: $e";
     }
@@ -64,12 +69,26 @@ class _ChonHoSoScreenState extends State<ChonHoSoScreen> {
     if (widget.bookingType == "ChuyenKhoa") {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => ChonChuyenKhoaScreen(hoSo: hoSo)),
+        MaterialPageRoute(
+          builder:
+              (_) => ChonChuyenKhoaScreen(
+                hoSo: hoSo,
+                userId: widget.userId,
+                selectedBookings: [],
+              ),
+        ),
       );
     } else if (widget.bookingType == "BacSi") {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => ChonBacSiScreen(hoSo: hoSo)),
+        MaterialPageRoute(
+          builder:
+              (_) => ChonBacSiScreen(
+                hoSo: hoSo,
+                userId: widget.userId,
+                selectedBookings: [],
+              ),
+        ),
       );
     } else {
       print("Lỗi: bookingType không hợp lệ!");
@@ -80,7 +99,14 @@ class _ChonHoSoScreenState extends State<ChonHoSoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Chọn hồ sơ đặt khám"),
+        title: const Text(
+          "Chọn hồ sơ đặt khám",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
         backgroundColor: const Color(0xFF0165FC),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),

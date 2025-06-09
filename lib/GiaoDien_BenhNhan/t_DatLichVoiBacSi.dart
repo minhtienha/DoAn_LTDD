@@ -3,38 +3,260 @@ import 't_DanhSachLichChon.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/trangChu.dart';
 
 class DatLichBacSi extends StatefulWidget {
-  const DatLichBacSi({super.key});
+  final int userId;
+  final Map<String, dynamic> hoSo;
+  final Map<String, dynamic> bacSi;
+  final List<Map<String, dynamic>> selectedBookings; // Thêm dòng này
+  const DatLichBacSi({
+    super.key,
+    required this.hoSo,
+    required this.bacSi,
+    required this.userId,
+    required this.selectedBookings,
+  });
 
   @override
   State<DatLichBacSi> createState() => _DatLichBacSiState();
 }
 
+class TimeRange {
+  final String start;
+  final String end;
+
+  TimeRange({required this.start, required this.end});
+}
+
+class Doctor {
+  final String id; // ID duy nhất bác sĩ (ví dụ từ DB hoặc API)
+  final String name;
+  final String specialty;
+  final String lichLamViec;
+  late final Map<int, List<TimeRange>> schedule = parseLichLamViec(lichLamViec);
+
+  Doctor({
+    required this.id,
+    required this.name,
+    required this.specialty,
+    required this.lichLamViec,
+  });
+}
+
+/// Chuyển "T3" → weekday (1=Thứ Hai ... 7=Chủ Nhật)
+int weekdayFromLabel(String label) {
+  label = label.trim().toUpperCase();
+  if (label.startsWith('T')) {
+    final n = int.tryParse(label.substring(1));
+    if (n != null && n >= 2 && n <= 7) return n - 1;
+  }
+  throw FormatException('Không đọc được thứ: $label');
+}
+
+/// Tách "T3:07:30-11:30;T6:13:00-17:00" → map weekday→List<TimeRange>
+Map<int, List<TimeRange>> parseLichLamViec(String raw) {
+  final out = <int, List<TimeRange>>{};
+  for (final part in raw.split(';')) {
+    final p = part.trim();
+    if (p.isEmpty) continue;
+    final kv = p.split(':');
+    if (kv.length < 2) continue;
+    int wd;
+    try {
+      wd = weekdayFromLabel(kv[0]);
+    } catch (_) {
+      continue;
+    }
+    final times = kv.sublist(1).join(':').split('-');
+    if (times.length != 2) continue;
+    final sh = times[0].split(':'), eh = times[1].split(':');
+    final start = TimeOfDay(hour: int.parse(sh[0]), minute: int.parse(sh[1]));
+    final end = TimeOfDay(hour: int.parse(eh[0]), minute: int.parse(eh[1]));
+    out
+        .putIfAbsent(wd, () => [])
+        .add(
+          TimeRange(
+            start:
+                "${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}",
+            end:
+                "${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}",
+          ),
+        );
+  }
+  return out;
+}
+
 class _DatLichBacSiState extends State<DatLichBacSi> {
   DateTime? _selectedDate;
   String? _selectedTime;
-  bool _hasInsurance = false;
+  late List<Map<String, dynamic>> selectedBookings;
+  List<String> availableTimes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    selectedBookings = widget.selectedBookings;
+  }
 
   Future<void> _chonNgay(BuildContext context) async {
+    // 🛠 Tách danh sách các thứ bác sĩ làm từ "T2: 07:30-11:30; T5: 13:00-17:00"
+    List<int> allowedWeekdays = [];
+    for (final part in widget.bacSi["lichLamViec"].split(';')) {
+      final weekdayLabel = part.split(':')[0].trim();
+      try {
+        final wd = weekdayFromLabel(weekdayLabel);
+        allowedWeekdays.add(wd);
+      } catch (e) {
+        print("🚨 Lỗi khi chuyển đổi ngày làm việc: $e");
+      }
+    }
+    print("📅 Lịch làm việc bác sĩ: ${widget.bacSi["lichLamViec"]}");
+    print("✅ Các ngày hợp lệ: $allowedWeekdays");
+    // 📅 Bộ lọc để chỉ hiển thị ngày có trong `allowedWeekdays`
+    var initialValidDate = DateTime.now();
+    while (!allowedWeekdays.contains(initialValidDate.weekday)) {
+      initialValidDate = initialValidDate.add(const Duration(days: 1));
+    }
+
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate:
+          initialValidDate, // ✅ Ngày đầu tiên có trong danh sách hợp lệ
       firstDate: DateTime(2000),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      selectableDayPredicate:
+          (DateTime day) => allowedWeekdays.contains(day.weekday),
     );
+
     if (pickedDate != null) {
-      setState(() => _selectedDate = pickedDate);
+      setState(() {
+        _selectedDate = pickedDate;
+        _selectedTime = null; // Reset giờ đã chọn
+
+        // ✅ Cập nhật danh sách giờ hợp lệ theo ngày đã chọn
+        availableTimes = generateTimeSlots(
+          widget.bacSi["lichLamViec"],
+          pickedDate.weekday,
+        );
+      });
+      // Move print statements here for debugging
+      print("📌 Lịch làm việc bác sĩ: ${widget.bacSi["lichLamViec"]}");
+      print("📌 Ngày được chọn: ${pickedDate.weekday}");
+      print("✅ Danh sách giờ: $availableTimes");
     }
+  }
+
+  List<String> generateTimeSlots(String rawLichLamViec, int selectedWeekday) {
+    List<String> timeSlots = [];
+
+    for (final part in rawLichLamViec.split(';')) {
+      final kv = part.split(':');
+      if (kv.length < 2) continue;
+
+      final wd = weekdayFromLabel(kv[0].trim());
+      if (wd != selectedWeekday) continue;
+
+      final times = kv.sublist(1).join(':').split('-');
+      if (times.length != 2) continue;
+
+      final startParts = times[0].split(':');
+      final endParts = times[1].split(':');
+
+      int startHour = int.parse(startParts[0]);
+      int startMin = int.parse(startParts[1]);
+      int endHour = int.parse(endParts[0]);
+      int endMin = int.parse(endParts[1]);
+
+      DateTime current = DateTime(2000, 1, 1, startHour, startMin);
+      DateTime end = DateTime(2000, 1, 1, endHour, endMin);
+
+      while (current.add(const Duration(hours: 1)).compareTo(end) <= 0) {
+        final slotStart =
+            "${current.hour.toString().padLeft(2, '0')}:${current.minute.toString().padLeft(2, '0')}";
+        final next = current.add(const Duration(hours: 1));
+        final slotEnd =
+            "${next.hour.toString().padLeft(2, '0')}:${next.minute.toString().padLeft(2, '0')}";
+        timeSlots.add("$slotStart - $slotEnd");
+        current = next;
+      }
+    }
+
+    return timeSlots;
+  }
+
+  void _confirm() {
+    if (_selectedDate == null || _selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng chọn ngày và giờ khám")),
+      );
+      return;
+    }
+
+    final newDate =
+        "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}";
+    final newStart = _selectedTime!.split('-')[0].trim();
+
+    // Kiểm tra trùng lịch
+    final isTrung = selectedBookings.any((lich) {
+      if (lich["ngayKham"] != newDate) return false;
+      final existStart = lich["khungGio"].split('-')[0].trim();
+      if (existStart == newStart) return true;
+      final existStartTime = TimeOfDay(
+        hour: int.parse(existStart.split(':')[0]),
+        minute: int.parse(existStart.split(':')[1]),
+      );
+      final existEnd = lich["khungGio"].split('-')[1].trim();
+      final existEndTime = TimeOfDay(
+        hour: int.parse(existEnd.split(':')[0]),
+        minute: int.parse(existEnd.split(':')[1]),
+      );
+      final newStartTime = TimeOfDay(
+        hour: int.parse(newStart.split(':')[0]),
+        minute: int.parse(newStart.split(':')[1]),
+      );
+      final existStartMinutes =
+          existStartTime.hour * 60 + existStartTime.minute;
+      final existEndMinutes = existEndTime.hour * 60 + existEndTime.minute;
+      final newStartMinutes = newStartTime.hour * 60 + newStartTime.minute;
+      return newStartMinutes >= existStartMinutes &&
+          newStartMinutes < existEndMinutes;
+    });
+
+    if (isTrung) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Bạn đã có lịch trùng khung giờ này!")),
+      );
+      return;
+    }
+
+    // ✅ Lưu lịch vào danh sách tạm trước khi chuyển trang
+    final bookingData = {
+      "hoSoId": widget.hoSo["id"],
+      "tenHoSo": widget.hoSo["ten"],
+      "chuyenKhoa": widget.bacSi["chuyenKhoa"],
+      "gia": widget.bacSi["gia"],
+      "ngayKham": newDate,
+      "bacSiId": widget.bacSi["id"],
+      "bacSiTen": widget.bacSi["ten"],
+      "khungGio": _selectedTime,
+    };
+
+    selectedBookings.add(bookingData);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => DanhSachLichChuaThanhToanScreen(
+              hoSo: widget.bacSi,
+              userId: widget.userId,
+              ngayChon: _selectedDate,
+              selectedBookings: selectedBookings,
+            ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    List<Map<String, dynamic>> times = [
-      {"time": "7:00 AM", "session": "Sáng"},
-      {"time": "7:30 AM", "session": "Sáng"},
-      {"time": "1:00 PM", "session": "Chiều"},
-      {"time": "2:00 PM", "session": "Chiều"},
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -63,14 +285,17 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
               "Bác sĩ:",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const Text("Nguyễn Văn A", style: TextStyle(fontSize: 16)),
+            Text("${widget.bacSi["ten"]}", style: TextStyle(fontSize: 16)),
             const SizedBox(height: 10),
 
             const Text(
               "Chuyên khoa:",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const Text("Nội khoa", style: TextStyle(fontSize: 16)),
+            Text(
+              "${widget.bacSi["chuyenKhoa"]}",
+              style: TextStyle(fontSize: 16),
+            ),
             const Divider(height: 30),
 
             const Text(
@@ -98,85 +323,59 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 2.5,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                itemCount: times.length,
-                itemBuilder: (context, index) {
-                  bool isSelected = _selectedTime == times[index]["time"];
-                  Color backgroundColor =
-                      times[index]["session"] == "Sáng"
-                          ? Colors.green
-                          : Colors.orange;
-                  return GestureDetector(
-                    onTap:
-                        () => setState(
-                          () =>
-                              _selectedTime =
-                                  isSelected ? null : times[index]["time"],
-                        ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color:
-                            isSelected
-                                ? const Color(0xFF0165FC)
-                                : backgroundColor,
-                        borderRadius: BorderRadius.circular(8),
+              child:
+                  availableTimes.isEmpty
+                      ? const Center(
+                        child: Text("Không có giờ làm việc hợp lệ!"),
+                      )
+                      : ListView.builder(
+                        itemCount: availableTimes.length,
+                        itemBuilder: (context, index) {
+                          final timeSlot = availableTimes[index];
+                          bool isSelected = _selectedTime == timeSlot;
+
+                          // 📅 Kiểm tra buổi sáng hay chiều
+                          int hour = int.parse(timeSlot.split(":")[0]);
+                          Color backgroundColor =
+                              (hour < 12) ? Colors.green : Colors.orange;
+
+                          return GestureDetector(
+                            onTap:
+                                () => setState(
+                                  () =>
+                                      _selectedTime =
+                                          isSelected ? null : timeSlot,
+                                ),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color:
+                                    isSelected
+                                        ? const Color(0xFF0165FC)
+                                        : backgroundColor,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                timeSlot,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.all(10),
-                      child: Text(
-                        times[index]["time"],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
             ),
             const SizedBox(height: 20),
-
-            const Text(
-              "Bảo hiểm y tế:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Row(
-              children: [
-                Checkbox(
-                  value: _hasInsurance,
-                  onChanged: (value) => setState(() => _hasInsurance = value!),
-                ),
-                const Text("Có bảo hiểm"),
-                const SizedBox(width: 16),
-                Checkbox(
-                  value: !_hasInsurance,
-                  onChanged: (value) => setState(() => _hasInsurance = !value!),
-                ),
-                const Text("Không có bảo hiểm"),
-              ],
-            ),
-            const SizedBox(height: 30),
 
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => const DanhSachLichChuaThanhToanScreen(),
-                    ),
-                  );
-                },
+                onPressed: _confirm,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0165FC),
                   foregroundColor: Colors.white,

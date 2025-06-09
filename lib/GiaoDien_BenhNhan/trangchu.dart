@@ -6,12 +6,8 @@ import 'package:http/http.dart' as http;
 
 // Import các màn hình con (giữ y như cấu trúc của bạn)
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_HoSoBenhNhan.dart';
-import 'package:doan_nhom06/GiaoDien_BenhNhan/t_DatLichKhamChuyenKhoa.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_ChonHoSoKhamBenh.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_LichSuKham.dart';
-import 'package:doan_nhom06/GiaoDien_BenhNhan/t_ChonBacSiKham.dart';
-import 'package:doan_nhom06/GiaoDien_BenhNhan/t_DatLichVoiBacSi.dart';
-import 'package:doan_nhom06/GiaoDien_BenhNhan/trangCauHoiThuongGap.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/DangNhap.dart';
 
 class TrangChu extends StatefulWidget {
@@ -145,7 +141,7 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                     _buildServiceCard(
                       "Hồ sơ bệnh nhân",
                       "assets/images/hosobenh.png",
-                      HoSoBenhNhanScreen(),
+                      HoSoBenhNhanScreen(maNguoiDung: widget.userId),
                       const Color(0xFFFF9800),
                       Icons.folder_special,
                       2,
@@ -153,7 +149,7 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                     _buildServiceCard(
                       "Phiếu đặt lịch",
                       "assets/images/hoadon.png",
-                      LichSuKhamScreen(),
+                      LichSuKhamScreen(maNguoiDung: widget.userId),
                       const Color(0xFF9C27B0),
                       Icons.receipt_long,
                       3,
@@ -289,33 +285,8 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
         iconTheme: const IconThemeData(color: Colors.white),
         title: Row(
           children: <Widget>[
-            GestureDetector(
-              onTap: () {
-                Scaffold.of(context).openDrawer();
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 2,
-                  ),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(100),
-                  child: Image.asset(
-                    "assets/images/bong.png",
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
             const SizedBox(width: 12),
 
-            // Phần hiển thị tên: nếu _isLoadingName = true -> “Đang tải…”
-            // Ngược lại: “Chào <_userName>”
             Expanded(
               child:
                   _isLoadingName
@@ -336,21 +307,6 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                         ),
                       ),
             ),
-
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: IconButton(
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                onPressed: () {},
-              ),
-            ),
           ],
         ),
       ),
@@ -360,30 +316,6 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
 
       // === Body chính: grid dịch vụ đã định nghĩa ở trên ===
       body: _buildTrangChuBody(),
-
-      // === FloatingActionButton: chat hỗ trợ khách hàng ===
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF0165FC), Color(0xFF0056D6)],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0165FC).withOpacity(0.4),
-              spreadRadius: 0,
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () => CustomerSupportSheet.show(context),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-        ),
-      ),
     );
   }
 
@@ -411,32 +343,6 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                 ),
                 child: Row(
                   children: [
-                    // Ảnh đại diện (cố định)
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            spreadRadius: 0,
-                            blurRadius: 6,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(100),
-                        child: Image.asset(
-                          "assets/images/bong.png",
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-
                     // Tên & email người dùng
                     Expanded(
                       child: Column(
@@ -485,22 +391,76 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Column(
                 children: [
+                  // Đặt lịch khám bệnh
+                  _buildDrawerItem(
+                    icon: Icons.calendar_today,
+                    title: "Đặt lịch khám bệnh",
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder:
+                              (context) => ChonHoSoScreen(
+                                userId: widget.userId,
+                                bookingType: "ChuyenKhoa",
+                              ),
+                        ),
+                      );
+                    },
+                  ),
+                  // Đặt lịch theo bác sĩ
+                  _buildDrawerItem(
+                    icon: Icons.person_add,
+                    title: "Đặt lịch theo bác sĩ",
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder:
+                              (context) => ChonHoSoScreen(
+                                userId: widget.userId,
+                                bookingType: "BacSi",
+                              ),
+                        ),
+                      );
+                    },
+                  ),
+                  // Hồ sơ bệnh nhân
+                  _buildDrawerItem(
+                    icon: Icons.folder_special,
+                    title: "Hồ sơ bệnh nhân",
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder:
+                              (context) => HoSoBenhNhanScreen(
+                                maNguoiDung: widget.userId,
+                              ),
+                        ),
+                      );
+                    },
+                  ),
+                  // Phiếu đặt lịch
+                  _buildDrawerItem(
+                    icon: Icons.receipt_long,
+                    title: "Phiếu đặt lịch",
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder:
+                              (context) =>
+                                  LichSuKhamScreen(maNguoiDung: widget.userId),
+                        ),
+                      );
+                    },
+                  ),
+                  // Tổng đài CSKH
                   _buildDrawerItem(
                     icon: Icons.phone_outlined,
                     title: "Tổng đài CSKH",
                     subtitle: "0355876097",
                     onTap: () => Navigator.pop(context),
                   ),
-                  _buildDrawerItem(
-                    icon: Icons.help_outline,
-                    title: "Câu hỏi thường gặp",
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => const CauHoi()),
-                      );
-                    },
-                  ),
                   const Spacer(),
+                  // Đăng xuất
                   _buildDrawerItem(
                     icon: Icons.logout_outlined,
                     title: "Đăng xuất",
@@ -572,148 +532,6 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
           size: 16,
           color: Colors.grey[400],
         ),
-        onTap: onTap,
-      ),
-    );
-  }
-}
-
-/// Bottom sheet “Chăm sóc khách hàng”
-class CustomerSupportSheet {
-  static void show(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.support_agent,
-                      color: Color(0xFF0165FC),
-                      size: 28,
-                    ),
-                    SizedBox(width: 12),
-                    Text(
-                      "Chăm sóc khách hàng",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0165FC),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _buildSupportOption(
-                  icon: Icons.phone,
-                  title: "ĐẶT KHÁM",
-                  subtitle: "0355876097",
-                  color: const Color(0xFF4CAF50),
-                  onTap: () {},
-                ),
-                _buildSupportOption(
-                  icon: Icons.message,
-                  title: "MESSENGER",
-                  color: const Color(0xFF1877F2),
-                  onTap: () {},
-                ),
-                _buildSupportOption(
-                  icon: Icons.chat,
-                  title: "ZALO",
-                  color: const Color(0xFF0068FF),
-                  onTap: () {},
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      "Đóng",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  static Widget _buildSupportOption({
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: Colors.white, size: 24),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: color,
-          ),
-        ),
-        subtitle:
-            subtitle != null
-                ? Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: color.withOpacity(0.8),
-                    fontWeight: FontWeight.w500,
-                  ),
-                )
-                : null,
-        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: color),
         onTap: onTap,
       ),
     );

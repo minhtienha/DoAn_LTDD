@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 't_DanhSachLichChon.dart';
-import 'package:doan_nhom06/GiaoDien_BenhNhan/trangChu.dart';
 
 /// Mô hình khung giờ từ [start] → [end]
 class TimeRange {
@@ -45,6 +44,26 @@ Map<int, List<TimeRange>> parseLichLamViec(String raw) {
   return out;
 }
 
+Future<List<String>> _fetchLichKham(int bacSiId, DateTime ngay) async {
+  final dateStr =
+      "${ngay.year}-${ngay.month.toString().padLeft(2, '0')}-${ngay.day.toString().padLeft(2, '0')}";
+  final url =
+      "http://localhost:5001/api/LichKham/BacSiNgay?maBacSi=$bacSiId&ngay=$dateStr";
+  final resp = await http.get(Uri.parse(url));
+  if (resp.statusCode == 200) {
+    final List times = jsonDecode(resp.body);
+    // Lấy ra giờ:phút từ thời gian (giả sử trả về '2025-06-10T07:30:00')
+    return times
+        .map((t) {
+          final time = DateTime.parse(t);
+          return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
+        })
+        .toList()
+        .cast<String>();
+  }
+  return [];
+}
+
 /// Chia mỗi khoảng > 1h thành các slot 1h
 List<TimeRange> splitHourly(TimeRange r) {
   final slots = <TimeRange>[];
@@ -64,14 +83,27 @@ List<TimeRange> splitHourly(TimeRange r) {
   return slots;
 }
 
+/// Gộp chuỗi ngày + giờ thành lịch làm việc giống định dạng cũ
+String _combineSchedule(String ngay, String gio) {
+  final days = ngay.split(';').map((e) => e.trim()).toList();
+  final slots = gio.split(';').map((e) => e.trim()).toList();
+  final parts = <String>[];
+  for (var i = 0; i < days.length && i < slots.length; i++) {
+    parts.add("${days[i]}:${slots[i]}");
+  }
+  return parts.join(';');
+}
+
 /// Model bác sĩ cùng lịch làm việc dạng chuỗi (không cần model API riêng)
 class Doctor {
+  final String id; // ID duy nhất bác sĩ (ví dụ từ DB hoặc API)
   final String name;
   final String specialty;
   final String lichLamViec;
   late final Map<int, List<TimeRange>> schedule = parseLichLamViec(lichLamViec);
 
   Doctor({
+    required this.id,
     required this.name,
     required this.specialty,
     required this.lichLamViec,
@@ -80,8 +112,16 @@ class Doctor {
 
 class ChonChuyenKhoaScreen extends StatefulWidget {
   final Map<String, dynamic> hoSo;
+  final int userId;
+  final List<Map<String, dynamic>> selectedBookings; // Thêm dòng này
 
-  const ChonChuyenKhoaScreen({super.key, required this.hoSo});
+  const ChonChuyenKhoaScreen({
+    super.key,
+    required this.hoSo,
+    required this.userId,
+    required this.selectedBookings, // Thêm dòng này
+  });
+
   @override
   State<ChonChuyenKhoaScreen> createState() => _ChonChuyenKhoaScreenState();
 }
@@ -91,7 +131,7 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
   static const baseUrl = "http://localhost:5001/api";
 
   // --- Danh sách chuyên khoa từ API ---
-  List<String> chuyenKhoaList = [];
+  List<Map<String, dynamic>> chuyenKhoaList = [];
   bool loadingCK = true;
   String? errCK;
   String? selectedCK;
@@ -111,13 +151,16 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
   String? selectedSlot;
 
   // Danh sách tạm để lưu lịch đặt
-  List<Map<String, dynamic>> selectedBookings = [];
+  late List<Map<String, dynamic>> selectedBookings;
 
-  bool hasInsurance = false;
+  // Thêm biến:
+  List<Map<String, dynamic>> availableSlots = [];
+  Map<String, dynamic>? selectedSlotInfo;
 
   @override
   void initState() {
     super.initState();
+    selectedBookings = widget.selectedBookings;
     _loadChuyenKhoa();
     _loadDoctors();
   }
@@ -136,7 +179,9 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
             js
                 .whereType<Map<String, dynamic>>()
                 .where((m) => m.containsKey("tenChuyenKhoa"))
-                .map((m) => m["tenChuyenKhoa"] as String)
+                .map(
+                  (m) => {"tenChuyenKhoa": m["tenChuyenKhoa"], "gia": m["gia"]},
+                )
                 .toList();
       } else {
         errCK = "Lỗi server: ${resp.statusCode}";
@@ -161,14 +206,15 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
         final js = jsonDecode(resp.body) as List;
         doctors =
             js.whereType<Map<String, dynamic>>().map((m) {
-              final hoVaTen = m["hoVaTen"] as String? ?? "";
-              final ckMap = m["chuyenKhoa"] as Map<String, dynamic>?;
-              final tenCK =
-                  ckMap != null
-                      ? (ckMap["tenChuyenKhoa"] as String? ?? "")
-                      : "";
-              final lich = m["lichLamViec"] as String? ?? "";
-              return Doctor(name: hoVaTen, specialty: tenCK, lichLamViec: lich);
+              return Doctor(
+                id: m["maBacSi"].toString(), // hoặc key phù hợp với API trả về
+                name: m["hoVaTen"] as String? ?? "",
+                specialty: (m["chuyenKhoa"]?["tenChuyenKhoa"] as String?) ?? "",
+                lichLamViec: _combineSchedule(
+                  m["ngayLamViec"] as String? ?? "",
+                  m["khungGioLamViec"] as String? ?? "",
+                ),
+              );
             }).toList();
       } else {
         errDocs = "Lỗi server: ${resp.statusCode}";
@@ -225,19 +271,25 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
                 itemCount: chuyenKhoaList.length,
                 itemBuilder: (_, i) {
                   final ck = chuyenKhoaList[i];
+                  final isSelected = selectedCK == ck["tenChuyenKhoa"];
                   return ListTile(
                     title: Text(
-                      ck,
+                      ck["tenChuyenKhoa"],
                       style: TextStyle(
                         fontWeight:
-                            selectedCK == ck
-                                ? FontWeight.bold
-                                : FontWeight.normal,
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    trailing: Text(
+                      "${ck["gia"]} đ",
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     onTap: () {
                       setState(() {
-                        selectedCK = ck;
+                        selectedCK = ck["tenChuyenKhoa"];
                         selectedDate = null;
                         availDocs.clear();
                         docSlots.clear();
@@ -259,7 +311,7 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
     final d = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
+      firstDate: DateTime.now(), // Chỉ cho chọn từ hôm nay trở đi
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (d != null) {
@@ -268,75 +320,181 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
         selectedDoctor = null;
         selectedSlot = null;
       });
-      _filterDoctors();
+      await _loadAvailableSlots();
     }
   }
 
   /// Lọc bác sĩ ra những người làm việc đúng chuyên khoa và thứ
   void _filterDoctors() {
     if (selectedCK == null || selectedDate == null) {
+      availDocs = [];
+      docSlots = {};
+    } else {
+      final wd = selectedDate!.weekday;
+      final tmpDocs = <Doctor>[];
+      final tmpMap = <Doctor, List<TimeRange>>{};
+      for (var doc in doctors) {
+        if (doc.specialty != selectedCK) continue; // so sánh String
+        final ranges = doc.schedule[wd] ?? [];
+        if (ranges.isEmpty) continue;
+        final slots = ranges.expand(splitHourly).toList();
+        if (slots.isNotEmpty) {
+          tmpDocs.add(doc);
+          tmpMap[doc] = slots;
+        }
+      }
       setState(() {
-        availDocs.clear();
-        docSlots.clear();
+        availDocs = tmpDocs;
+        docSlots = tmpMap;
       });
-      return;
     }
-    final wd = selectedDate!.weekday; // 1=Thứ Hai … 7=CN
-    final tmpDocs = <Doctor>[];
-    final tmpMap = <Doctor, List<TimeRange>>{};
-    for (var doc in doctors) {
-      if (doc.specialty != selectedCK) continue;
+  }
+
+  /// Tải slot còn trống của bác sĩ
+  Future<void> _loadAvailableSlots() async {
+    availableSlots.clear();
+    if (selectedCK == null || selectedDate == null) return;
+    final wd = selectedDate!.weekday;
+    final List<Doctor> ckDocs =
+        doctors.where((doc) {
+          return doc.specialty == selectedCK &&
+              (doc.schedule[wd]?.isNotEmpty ?? false);
+        }).toList();
+
+    // Map<slotLabel, List<Doctor>>
+    final Map<String, List<Doctor>> slotToDoctors = {};
+
+    for (var doc in ckDocs) {
+      final booked = await _fetchLichKham(int.parse(doc.id), selectedDate!);
       final ranges = doc.schedule[wd] ?? [];
-      if (ranges.isEmpty) continue;
-      final slots = <TimeRange>[];
-      for (var r in ranges) {
-        slots.addAll(splitHourly(r));
-      }
-      if (slots.isNotEmpty) {
-        tmpDocs.add(doc);
-        tmpMap[doc] = slots;
+      final slots = ranges.expand(splitHourly).toList();
+      for (var r in slots) {
+        final slotStart =
+            "${r.start.hour.toString().padLeft(2, '0')}:${r.start.minute.toString().padLeft(2, '0')}";
+        if (!booked.contains(slotStart)) {
+          final slotLabel =
+              "${r.start.hour.toString().padLeft(2, '0')}:${r.start.minute.toString().padLeft(2, '0')} - "
+              "${r.end.hour.toString().padLeft(2, '0')}:${r.end.minute.toString().padLeft(2, '0')}";
+          slotToDoctors.putIfAbsent(slotLabel, () => []).add(doc);
+        }
       }
     }
-    setState(() {
-      availDocs = tmpDocs;
-      docSlots = tmpMap;
-    });
+
+    // Tạo danh sách slot, mỗi slot có số lượng bác sĩ còn trống
+    availableSlots =
+        slotToDoctors.entries
+            .where((e) => e.value.isNotEmpty)
+            .map(
+              (e) => {
+                "slotLabel": e.key,
+                "doctors": e.value, // List<Doctor>
+                "count": e.value.length,
+              },
+            )
+            .toList();
+
+    setState(() {});
   }
 
   /// Xác nhận
-  void _confirm() {
+  void _confirm() async {
     if (selectedCK == null ||
         selectedDate == null ||
-        availDocs.isEmpty ||
-        selectedDoctor == null ||
-        selectedSlot == null) {
+        selectedSlotInfo == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Vui lòng chọn chuyên khoa, ngày, bác sĩ và khung giờ"),
+          content: Text("Vui lòng chọn chuyên khoa, ngày và khung giờ!"),
         ),
       );
       return;
     }
 
-    // ✅ Lưu lịch vào danh sách tạm trước khi chuyển trang
+    // Chọn bác sĩ có số lịch ít nhất trong slot này
+    List<Doctor> slotDoctors = List<Doctor>.from(selectedSlotInfo!["doctors"]);
+    Doctor? chosenDoctor;
+    int minLich = 99999;
+    for (var doc in slotDoctors) {
+      final booked = await _fetchLichKham(int.parse(doc.id), selectedDate!);
+      if (booked.length < minLich) {
+        minLich = booked.length;
+        chosenDoctor = doc;
+      }
+    }
+    if (chosenDoctor == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Slot này đã hết chỗ!")));
+      return;
+    }
+
     final bookingData = {
       "hoSoId": widget.hoSo["id"],
       "tenHoSo": widget.hoSo["ten"],
       "chuyenKhoa": selectedCK,
+      "gia":
+          chuyenKhoaList.firstWhere(
+            (ck) => ck["tenChuyenKhoa"] == selectedCK,
+          )["gia"],
       "ngayKham":
           "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
-      "bacSi": selectedDoctor!.name,
-      "khungGio": selectedSlot,
+      "bacSiId": chosenDoctor.id,
+      "bacSiTen": chosenDoctor.name,
+      "khungGio": selectedSlotInfo!["slotLabel"],
     };
 
+    // Lấy giờ bắt đầu của lịch mới
+    final newStart = selectedSlotInfo!["slotLabel"].split('-')[0].trim();
+    final newDate =
+        "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}";
+
+    // Kiểm tra trùng lịch
+    final isTrung = selectedBookings.any((lich) {
+      if (lich["ngayKham"] != newDate) return false;
+      // Lấy giờ bắt đầu của lịch đã chọn
+      final existStart = lich["khungGio"].split('-')[0].trim();
+      // Nếu giờ bắt đầu trùng
+      if (existStart == newStart) return true;
+      // Nếu giờ bắt đầu của lịch mới nằm trong khung giờ đã chọn
+      final existStartTime = TimeOfDay(
+        hour: int.parse(existStart.split(':')[0]),
+        minute: int.parse(existStart.split(':')[1]),
+      );
+      final existEnd = lich["khungGio"].split('-')[1].trim();
+      final existEndTime = TimeOfDay(
+        hour: int.parse(existEnd.split(':')[0]),
+        minute: int.parse(existEnd.split(':')[1]),
+      );
+      final newStartTime = TimeOfDay(
+        hour: int.parse(newStart.split(':')[0]),
+        minute: int.parse(newStart.split(':')[1]),
+      );
+      // Nếu giờ bắt đầu mới nằm trong khoảng đã đặt
+      final existStartMinutes =
+          existStartTime.hour * 60 + existStartTime.minute;
+      final existEndMinutes = existEndTime.hour * 60 + existEndTime.minute;
+      final newStartMinutes = newStartTime.hour * 60 + newStartTime.minute;
+      return newStartMinutes >= existStartMinutes &&
+          newStartMinutes < existEndMinutes;
+    });
+
+    if (isTrung) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Bạn đã có lịch trùng khung giờ này!")),
+      );
+      return;
+    }
+
+    // Nếu không trùng thì thêm vào danh sách
     selectedBookings.add(bookingData);
 
-    // ✅ Chuyển sang trang danh sách lịch chưa thanh toán, truyền danh sách tạm
     Navigator.push(
       context,
       MaterialPageRoute(
         builder:
             (_) => DanhSachLichChuaThanhToanScreen(
+              hoSo: widget.hoSo,
+              userId: widget.userId,
+              ngayChon: selectedDate,
               selectedBookings: selectedBookings,
             ),
       ),
@@ -376,8 +534,21 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.blue,
               ),
-              child: Text(selectedCK ?? "Chọn chuyên khoa"),
+              child: Text(
+                selectedCK != null ? selectedCK! : "Chọn chuyên khoa",
+              ),
             ),
+            if (selectedCK != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                "Giá khám: ${chuyenKhoaList.firstWhere((ck) => ck["tenChuyenKhoa"] == selectedCK)["gia"]} đ",
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
 
             // Ngày
@@ -401,114 +572,44 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
             const SizedBox(height: 20),
 
             // Danh sách bác sĩ + khung giờ
-            if (selectedDate != null)
-              Expanded(
-                child:
-                    availDocs.isEmpty
-                        ? const Center(
-                          child: Text(
-                            "Không có bác sĩ làm việc trong ngày này",
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        )
-                        : ListView.builder(
-                          itemCount: availDocs.length,
-                          itemBuilder: (_, i) {
-                            final doc = availDocs[i];
-                            final slots = docSlots[doc]!;
-                            return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      doc.name,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text("Chuyên khoa: ${doc.specialty}"),
-                                    const SizedBox(height: 8),
-                                    const Text(
-                                      "Khung giờ khả dụng:",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    GridView.builder(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      gridDelegate:
-                                          const SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: 2,
-                                            childAspectRatio: 3,
-                                            crossAxisSpacing: 8,
-                                            mainAxisSpacing: 8,
-                                          ),
-                                      itemCount: slots.length,
-                                      itemBuilder: (_, j) {
-                                        final r = slots[j];
-                                        final lbl =
-                                            "${r.start.format(ctx)} - ${r.end.format(ctx)}";
-                                        final isSel =
-                                            (doc == selectedDoctor &&
-                                                lbl == selectedSlot);
-                                        return GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              if (isSel) {
-                                                selectedDoctor = null;
-                                                selectedSlot = null;
-                                              } else {
-                                                selectedDoctor = doc;
-                                                selectedSlot = lbl;
-                                              }
-                                            });
-                                          },
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  isSel
-                                                      ? Colors.blue
-                                                      : Colors.blue.shade50,
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
-                                              border: Border.all(
-                                                color:
-                                                    isSel
-                                                        ? Colors.blue.shade800
-                                                        : Colors.blue.shade200,
-                                              ),
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              lbl,
-                                              style: TextStyle(
-                                                color:
-                                                    isSel
-                                                        ? Colors.white
-                                                        : Colors.black87,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-              ),
-
+            // if (selectedDate != null)
+            //   const Padding(
+            //     padding: EdgeInsets.symmetric(vertical: 16),
+            //     child: Text(
+            //       "Hệ thống sẽ tự động chọn bác sĩ và khung giờ phù hợp nhất.",
+            //       style: TextStyle(
+            //         color: Colors.blue,
+            //         fontWeight: FontWeight.bold,
+            //       ),
+            //     ),
+            //   ),
             const SizedBox(height: 8),
+            if (availableSlots.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Chọn khung giờ khám:",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ...availableSlots.map(
+                    (slot) => ListTile(
+                      title: Text(slot["slotLabel"]),
+                      subtitle: Text("Còn ${slot["count"]} bác sĩ trống"),
+                      leading: Radio<Map<String, dynamic>>(
+                        value: slot,
+                        groupValue: selectedSlotInfo,
+                        onChanged: (val) {
+                          setState(() {
+                            selectedSlotInfo = val;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
 
             const SizedBox(height: 16),
 
@@ -523,7 +624,11 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
                 ),
                 child: const Text(
                   "Xác nhận đặt lịch",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
