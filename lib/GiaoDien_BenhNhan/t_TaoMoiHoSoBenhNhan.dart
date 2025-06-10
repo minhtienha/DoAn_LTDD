@@ -2,6 +2,18 @@ import 'package:doan_nhom06/GiaoDien_BenhNhan/t_HoSoBenhNhan.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:5001/';
+  } else {
+    return 'http://10.0.2.2:5001/';
+  }
+}
 
 class TaoHoSoBenhNhanScreen extends StatefulWidget {
   final int maNguoiDung;
@@ -49,12 +61,14 @@ class _TaoHoSoBenhNhanScreenState extends State<TaoHoSoBenhNhanScreen> {
   }
 
   String? _validate() {
-    if (_hoTenController.text.trim().isEmpty)
+    if (_hoTenController.text.trim().isEmpty) {
       return 'Vui lòng nhập tên bệnh nhân';
+    }
     if (_ngaySinh == null) return 'Vui lòng chọn ngày sinh';
     if (_gioiTinh == null) return 'Vui lòng chọn giới tính';
-    if (_moiQuanHeController.text.trim().isEmpty)
+    if (_moiQuanHeController.text.trim().isEmpty) {
       return 'Vui lòng nhập mối quan hệ';
+    }
     return null;
   }
 
@@ -78,7 +92,7 @@ class _TaoHoSoBenhNhanScreenState extends State<TaoHoSoBenhNhanScreen> {
 
     try {
       final resp = await http.post(
-        Uri.parse('http://localhost:5001/api/HoSoBenhNhan'),
+        Uri.parse('${getBaseUrl()}api/HoSoBenhNhan'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );

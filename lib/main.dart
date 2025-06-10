@@ -1,8 +1,5 @@
-import 'package:doan_nhom06/GiaoDien_BacSi/TrangChu.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/DangNhap.dart';
-import 'package:doan_nhom06/GiaoDien_BenhNhan/trangChu.dart';
 import 'package:flutter/material.dart';
-
 
 void main() {
   runApp(const MyApp());

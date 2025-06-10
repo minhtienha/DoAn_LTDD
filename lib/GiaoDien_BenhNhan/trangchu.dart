@@ -9,6 +9,18 @@ import 'package:doan_nhom06/GiaoDien_BenhNhan/t_HoSoBenhNhan.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_ChonHoSoKhamBenh.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_LichSuKham.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/DangNhap.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:5001/';
+  } else {
+    return 'http://10.0.2.2:5001/';
+  }
+}
 
 class TrangChu extends StatefulWidget {
   final int userId;
@@ -56,7 +68,7 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
   /// Hàm gọi API để lấy thông tin người dùng theo ID (chỉ lấy field hoVaTen)
   Future<void> _fetchUserName() async {
     final int id = widget.userId;
-    final String url = "http://localhost:5001/api/NguoiDung/$id";
+    final String url = "${getBaseUrl()}api/NguoiDung/$id";
 
     try {
       final response = await http.get(Uri.parse(url));

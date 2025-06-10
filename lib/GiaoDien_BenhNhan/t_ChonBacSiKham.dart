@@ -2,6 +2,18 @@ import 'package:doan_nhom06/GiaoDien_BenhNhan/t_DatLichVoiBacSi.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:5001/';
+  } else {
+    return 'http://10.0.2.2:5001/';
+  }
+}
 
 class ChonBacSiScreen extends StatefulWidget {
   final Map<String, dynamic> hoSo;
@@ -49,7 +61,6 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
     );
   }
 
-  static const baseUrl = "http://localhost:5001/api";
   List<Map<String, dynamic>> chuyenKhoaList = [];
   List<Map<String, dynamic>> danhSachBacSi = [];
   bool loadingCK = true;
@@ -74,7 +85,7 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
 
   Future<void> _loadChuyenKhoa() async {
     setState(() => loadingCK = true);
-    final resp = await http.get(Uri.parse("$baseUrl/ChuyenKhoa"));
+    final resp = await http.get(Uri.parse("${getBaseUrl()}api/ChuyenKhoa"));
     if (resp.statusCode == 200) {
       final js = jsonDecode(resp.body) as List;
       chuyenKhoaList =
@@ -97,7 +108,7 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
   }
 
   Future<void> _loadBacSi() async {
-    final resp = await http.get(Uri.parse("$baseUrl/BacSi"));
+    final resp = await http.get(Uri.parse("${getBaseUrl()}api/BacSi"));
     if (resp.statusCode == 200) {
       final data = jsonDecode(resp.body) as List;
       danhSachBacSi =

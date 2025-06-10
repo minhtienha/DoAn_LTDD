@@ -3,6 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 't_DanhSachLichChon.dart';
 
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:5001/';
+  } else {
+    return 'http://10.0.2.2:5001/';
+  }
+}
+
 /// Mô hình khung giờ từ [start] → [end]
 class TimeRange {
   final TimeOfDay start;
@@ -48,11 +61,11 @@ Future<List<String>> _fetchLichKham(int bacSiId, DateTime ngay) async {
   final dateStr =
       "${ngay.year}-${ngay.month.toString().padLeft(2, '0')}-${ngay.day.toString().padLeft(2, '0')}";
   final url =
-      "http://localhost:5001/api/LichKham/BacSiNgay?maBacSi=$bacSiId&ngay=$dateStr";
+      "${getBaseUrl()}api/LichKham/BacSiNgay?maBacSi=$bacSiId&ngay=$dateStr";
   final resp = await http.get(Uri.parse(url));
   if (resp.statusCode == 200) {
     final List times = jsonDecode(resp.body);
-    // Lấy ra giờ:phút từ thời gian (giả sử trả về '2025-06-10T07:30:00')
+    // Lấy ra giờ:phút từ thời gian (trả về '2025-06-10T07:30:00')
     return times
         .map((t) {
           final time = DateTime.parse(t);
@@ -64,7 +77,7 @@ Future<List<String>> _fetchLichKham(int bacSiId, DateTime ngay) async {
   return [];
 }
 
-/// Chia mỗi khoảng > 1h thành các slot 1h
+/// Chia khung giờ thành các slot = 1h
 List<TimeRange> splitHourly(TimeRange r) {
   final slots = <TimeRange>[];
   var curr = r.start.hour * 60 + r.start.minute;
@@ -94,9 +107,8 @@ String _combineSchedule(String ngay, String gio) {
   return parts.join(';');
 }
 
-/// Model bác sĩ cùng lịch làm việc dạng chuỗi (không cần model API riêng)
 class Doctor {
-  final String id; // ID duy nhất bác sĩ (ví dụ từ DB hoặc API)
+  final String id;
   final String name;
   final String specialty;
   final String lichLamViec;
@@ -113,13 +125,13 @@ class Doctor {
 class ChonChuyenKhoaScreen extends StatefulWidget {
   final Map<String, dynamic> hoSo;
   final int userId;
-  final List<Map<String, dynamic>> selectedBookings; // Thêm dòng này
+  final List<Map<String, dynamic>> selectedBookings;
 
   const ChonChuyenKhoaScreen({
     super.key,
     required this.hoSo,
     required this.userId,
-    required this.selectedBookings, // Thêm dòng này
+    required this.selectedBookings,
   });
 
   @override
@@ -127,16 +139,11 @@ class ChonChuyenKhoaScreen extends StatefulWidget {
 }
 
 class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
-  // BASE URL của API
-  static const baseUrl = "http://localhost:5001/api";
-
-  // --- Danh sách chuyên khoa từ API ---
   List<Map<String, dynamic>> chuyenKhoaList = [];
   bool loadingCK = true;
   String? errCK;
   String? selectedCK;
 
-  // --- Danh sách bác sĩ từ API ---
   List<Doctor> doctors = [];
   bool loadingDocs = true;
   String? errDocs;
@@ -153,7 +160,6 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
   // Danh sách tạm để lưu lịch đặt
   late List<Map<String, dynamic>> selectedBookings;
 
-  // Thêm biến:
   List<Map<String, dynamic>> availableSlots = [];
   Map<String, dynamic>? selectedSlotInfo;
 
@@ -172,7 +178,7 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
       errCK = null;
     });
     try {
-      final resp = await http.get(Uri.parse("$baseUrl/ChuyenKhoa"));
+      final resp = await http.get(Uri.parse("${getBaseUrl()}/ChuyenKhoa"));
       if (resp.statusCode == 200) {
         final js = jsonDecode(resp.body) as List;
         chuyenKhoaList =
@@ -183,8 +189,6 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
                   (m) => {"tenChuyenKhoa": m["tenChuyenKhoa"], "gia": m["gia"]},
                 )
                 .toList();
-      } else {
-        errCK = "Lỗi server: ${resp.statusCode}";
       }
     } catch (e) {
       errCK = "Không thể kết nối: $e";
@@ -201,23 +205,21 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
       errDocs = null;
     });
     try {
-      final resp = await http.get(Uri.parse("$baseUrl/BacSi"));
+      final resp = await http.get(Uri.parse("${getBaseUrl()}api/BacSi"));
       if (resp.statusCode == 200) {
         final js = jsonDecode(resp.body) as List;
         doctors =
             js.whereType<Map<String, dynamic>>().map((m) {
               return Doctor(
-                id: m["maBacSi"].toString(), // hoặc key phù hợp với API trả về
+                id: m["maBacSi"].toString(),
                 name: m["hoVaTen"] as String? ?? "",
                 specialty: (m["chuyenKhoa"]?["tenChuyenKhoa"] as String?) ?? "",
                 lichLamViec: _combineSchedule(
-                  m["ngayLamViec"] as String? ?? "",
-                  m["khungGioLamViec"] as String? ?? "",
+                  m["ngayLamViec"],
+                  m["khungGioLamViec"],
                 ),
               );
             }).toList();
-      } else {
-        errDocs = "Lỗi server: ${resp.statusCode}";
       }
     } catch (e) {
       errDocs = "Không thể kết nối: $e";
@@ -235,30 +237,30 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
       ).showSnackBar(const SnackBar(content: Text("Đang tải chuyên khoa...")));
       return;
     }
-    if (errCK != null) {
-      showDialog(
-        context: context,
-        builder:
-            (_) => AlertDialog(
-              title: const Text("Lỗi"),
-              content: Text(errCK!),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _loadChuyenKhoa();
-                  },
-                  child: const Text("Thử lại"),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Đóng"),
-                ),
-              ],
-            ),
-      );
-      return;
-    }
+    // if (errCK != null) {
+    //   showDialog(
+    //     context: context,
+    //     builder:
+    //         (_) => AlertDialog(
+    //           title: const Text("Lỗi"),
+    //           content: Text(errCK!),
+    //           actions: [
+    //             TextButton(
+    //               onPressed: () {
+    //                 Navigator.pop(context);
+    //                 _loadChuyenKhoa();
+    //               },
+    //               child: const Text("Thử lại"),
+    //             ),
+    //             TextButton(
+    //               onPressed: () => Navigator.pop(context),
+    //               child: const Text("Đóng"),
+    //             ),
+    //           ],
+    //         ),
+    //   );
+    //   return;
+    // }
     showDialog(
       context: context,
       builder:
@@ -311,7 +313,7 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
     final d = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime.now(), // Chỉ cho chọn từ hôm nay trở đi
+      firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (d != null) {
@@ -324,31 +326,31 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
     }
   }
 
-  /// Lọc bác sĩ ra những người làm việc đúng chuyên khoa và thứ
-  void _filterDoctors() {
-    if (selectedCK == null || selectedDate == null) {
-      availDocs = [];
-      docSlots = {};
-    } else {
-      final wd = selectedDate!.weekday;
-      final tmpDocs = <Doctor>[];
-      final tmpMap = <Doctor, List<TimeRange>>{};
-      for (var doc in doctors) {
-        if (doc.specialty != selectedCK) continue; // so sánh String
-        final ranges = doc.schedule[wd] ?? [];
-        if (ranges.isEmpty) continue;
-        final slots = ranges.expand(splitHourly).toList();
-        if (slots.isNotEmpty) {
-          tmpDocs.add(doc);
-          tmpMap[doc] = slots;
-        }
-      }
-      setState(() {
-        availDocs = tmpDocs;
-        docSlots = tmpMap;
-      });
-    }
-  }
+  // /// Lọc bác sĩ ra những người làm việc đúng chuyên khoa và thứ
+  // void _filterDoctors() {
+  //   if (selectedCK == null || selectedDate == null) {
+  //     availDocs = [];
+  //     docSlots = {};
+  //   } else {
+  //     final wd = selectedDate!.weekday;
+  //     final tmpDocs = <Doctor>[];
+  //     final tmpMap = <Doctor, List<TimeRange>>{};
+  //     for (var doc in doctors) {
+  //       if (doc.specialty != selectedCK) continue; // so sánh String
+  //       final ranges = doc.schedule[wd] ?? [];
+  //       if (ranges.isEmpty) continue;
+  //       final slots = ranges.expand(splitHourly).toList();
+  //       if (slots.isNotEmpty) {
+  //         tmpDocs.add(doc);
+  //         tmpMap[doc] = slots;
+  //       }
+  //     }
+  //     setState(() {
+  //       availDocs = tmpDocs;
+  //       docSlots = tmpMap;
+  //     });
+  //   }
+  // }
 
   /// Tải slot còn trống của bác sĩ
   Future<void> _loadAvailableSlots() async {
@@ -361,7 +363,6 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
               (doc.schedule[wd]?.isNotEmpty ?? false);
         }).toList();
 
-    // Map<slotLabel, List<Doctor>>
     final Map<String, List<Doctor>> slotToDoctors = {};
 
     for (var doc in ckDocs) {

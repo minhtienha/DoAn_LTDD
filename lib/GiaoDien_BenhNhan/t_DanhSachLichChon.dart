@@ -5,6 +5,19 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:5001/';
+  } else {
+    return 'http://10.0.2.2:5001/';
+  }
+}
+
 class DanhSachLichChuaThanhToanScreen extends StatefulWidget {
   final Map<String, dynamic> hoSo;
   final int userId;
@@ -25,7 +38,7 @@ class DanhSachLichChuaThanhToanScreen extends StatefulWidget {
 
 class _DanhSachLichChuaThanhToanScreenState
     extends State<DanhSachLichChuaThanhToanScreen> {
-  final baseUrl = "http://localhost:5001/api";
+  final baseUrl = "${getBaseUrl()}api";
 
   Future<void> guiNhieuLichKhamVaThanhToan(
     List<Map<String, dynamic>> bookings,
@@ -33,7 +46,7 @@ class _DanhSachLichChuaThanhToanScreenState
     // 1. Tính tổng tiền
     final tongTien = bookings.fold(
       0,
-      (sum, item) => sum + (item["gia"] as int),
+      (sum, item) => sum + (item["gia"] as num).toInt(),
     );
 
     // 2. Tạo thanh toán 1 lần
@@ -76,7 +89,8 @@ class _DanhSachLichChuaThanhToanScreenState
               bookingData["khungGio"],
             ),
             "gia": (bookingData["gia"] as num).toDouble(),
-            "trangThai": "Đã thanh toán",
+            "trangThaiTT": "Đã thanh toán",
+            "trangThaiKham": "Chưa khám",
             "ngayTao": DateTime.now().toIso8601String(),
           }),
         );
@@ -108,6 +122,19 @@ class _DanhSachLichChuaThanhToanScreenState
         } else {
           print("Liên kết lịch khám - thanh toán thành công!");
         }
+
+        // Gửi thông báo cho bác sĩ về lịch khám mới
+        await http.post(
+          Uri.parse("$baseUrl/ThongBao"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({
+            "maNguoiNhan": bookingData["bacSiId"],
+            "noiDung":
+                "Bạn có lịch khám mới từ bệnh nhân vào ngày ${bookingData["ngayKham"]} lúc ${bookingData["khungGio"]}.",
+            "trangThaiDoc": false,
+            "ngayTao": DateTime.now().toIso8601String(),
+          }),
+        );
       } catch (e) {
         print("Lỗi khi gửi booking: $e");
       }
@@ -161,7 +188,7 @@ class _DanhSachLichChuaThanhToanScreenState
   int get tongTien {
     return widget.selectedBookings.fold(
       0,
-      (sum, item) => sum + (item["gia"] as int),
+      (sum, item) => sum + (item["gia"] as num).toInt(),
     );
   }
 

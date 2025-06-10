@@ -1,12 +1,26 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 't_DanhSachLichChon.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/trangChu.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:5001/';
+  } else {
+    return 'http://10.0.2.2:5001/';
+  }
+}
 
 class DatLichBacSi extends StatefulWidget {
   final int userId;
   final Map<String, dynamic> hoSo;
   final Map<String, dynamic> bacSi;
-  final List<Map<String, dynamic>> selectedBookings; // Thêm dòng này
+  final List<Map<String, dynamic>> selectedBookings;
   const DatLichBacSi({
     super.key,
     required this.hoSo,
@@ -27,7 +41,7 @@ class TimeRange {
 }
 
 class Doctor {
-  final String id; // ID duy nhất bác sĩ (ví dụ từ DB hoặc API)
+  final String id;
   final String name;
   final String specialty;
   final String lichLamViec;
@@ -97,7 +111,7 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
   }
 
   Future<void> _chonNgay(BuildContext context) async {
-    // 🛠 Tách danh sách các thứ bác sĩ làm từ "T2: 07:30-11:30; T5: 13:00-17:00"
+    // Tách danh sách các thứ bác sĩ làm từ "T2: 07:30-11:30; T5: 13:00-17:00"
     List<int> allowedWeekdays = [];
     for (final part in widget.bacSi["lichLamViec"].split(';')) {
       final weekdayLabel = part.split(':')[0].trim();
@@ -108,9 +122,7 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
         print("🚨 Lỗi khi chuyển đổi ngày làm việc: $e");
       }
     }
-    print("📅 Lịch làm việc bác sĩ: ${widget.bacSi["lichLamViec"]}");
-    print("✅ Các ngày hợp lệ: $allowedWeekdays");
-    // 📅 Bộ lọc để chỉ hiển thị ngày có trong `allowedWeekdays`
+    // Bộ lọc để chỉ hiển thị ngày có trong `allowedWeekdays`
     var initialValidDate = DateTime.now();
     while (!allowedWeekdays.contains(initialValidDate.weekday)) {
       initialValidDate = initialValidDate.add(const Duration(days: 1));
@@ -118,71 +130,109 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
 
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate:
-          initialValidDate, // ✅ Ngày đầu tiên có trong danh sách hợp lệ
-      firstDate: DateTime(2000),
+      initialDate: initialValidDate,
+      firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       selectableDayPredicate:
           (DateTime day) => allowedWeekdays.contains(day.weekday),
     );
 
+    List<String> generateTimeSlots(String rawLichLamViec, int selectedWeekday) {
+      List<String> timeSlots = [];
+
+      for (final part in rawLichLamViec.split(';')) {
+        final kv = part.split(':');
+        if (kv.length < 2) continue;
+
+        final wd = weekdayFromLabel(kv[0].trim());
+        if (wd != selectedWeekday) continue;
+
+        final times = kv.sublist(1).join(':').split('-');
+        if (times.length != 2) continue;
+
+        final startParts = times[0].split(':');
+        final endParts = times[1].split(':');
+
+        int startHour = int.parse(startParts[0]);
+        int startMin = int.parse(startParts[1]);
+        int endHour = int.parse(endParts[0]);
+        int endMin = int.parse(endParts[1]);
+
+        DateTime current = DateTime(2000, 1, 1, startHour, startMin);
+        DateTime end = DateTime(2000, 1, 1, endHour, endMin);
+
+        while (current.add(const Duration(hours: 1)).compareTo(end) <= 0) {
+          final slotStart =
+              "${current.hour.toString().padLeft(2, '0')}:${current.minute.toString().padLeft(2, '0')}";
+          final next = current.add(const Duration(hours: 1));
+          final slotEnd =
+              "${next.hour.toString().padLeft(2, '0')}:${next.minute.toString().padLeft(2, '0')}";
+          timeSlots.add("$slotStart - $slotEnd");
+          current = next;
+        }
+      }
+
+      return timeSlots;
+    }
+
     if (pickedDate != null) {
+      // Generate tất cả time slot hợp lệ trong lịch làm việc của bác sĩ
+      List<String> times = generateTimeSlots(
+        widget.bacSi["lichLamViec"],
+        pickedDate.weekday,
+      );
+
+      final bookedLocal =
+          selectedBookings
+              .where(
+                (b) =>
+                    b['bacSiId'] == widget.bacSi['id'] &&
+                    b['ngayKham'] ==
+                        "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}",
+              )
+              .map((b) => b['khungGio'])
+              .toSet();
+
+      // Lấy khung giờ đã đặt từ database (gọi API)
+      final bacSiId = widget.bacSi['id'];
+      final resp = await http.get(
+        Uri.parse("${getBaseUrl()}api/LichKham?maBacSi=$bacSiId"),
+      );
+
+      Set<String> bookedDB = {};
+      if (resp.statusCode == 200) {
+        final lichList = jsonDecode(resp.body) as List;
+        for (final lich in lichList) {
+          // Lấy ngày
+          final DateTime thoiGianKham = DateTime.parse(lich['thoiGianKham']);
+          final isSameDay =
+              thoiGianKham.day == pickedDate.day &&
+              thoiGianKham.month == pickedDate.month &&
+              thoiGianKham.year == pickedDate.year;
+          if (lich['maBacSi'] == bacSiId && isSameDay) {
+            // Convert lại khung giờ (07:30:00 thì chỉ lấy 07:30)
+            final slot =
+                "${thoiGianKham.hour.toString().padLeft(2, '0')}:${thoiGianKham.minute.toString().padLeft(2, '0')}";
+            bookedDB.add(slot);
+          }
+        }
+      }
+
+      times =
+          times.where((slot) {
+            final slotStart = slot.split('-')[0].trim();
+            return !bookedLocal.contains(slot) && !bookedDB.contains(slotStart);
+          }).toList();
+
       setState(() {
         _selectedDate = pickedDate;
-        _selectedTime = null; // Reset giờ đã chọn
-
-        // ✅ Cập nhật danh sách giờ hợp lệ theo ngày đã chọn
-        availableTimes = generateTimeSlots(
-          widget.bacSi["lichLamViec"],
-          pickedDate.weekday,
-        );
+        _selectedTime = null;
+        availableTimes = times;
       });
-      // Move print statements here for debugging
-      print("📌 Lịch làm việc bác sĩ: ${widget.bacSi["lichLamViec"]}");
-      print("📌 Ngày được chọn: ${pickedDate.weekday}");
-      print("✅ Danh sách giờ: $availableTimes");
     }
   }
 
-  List<String> generateTimeSlots(String rawLichLamViec, int selectedWeekday) {
-    List<String> timeSlots = [];
-
-    for (final part in rawLichLamViec.split(';')) {
-      final kv = part.split(':');
-      if (kv.length < 2) continue;
-
-      final wd = weekdayFromLabel(kv[0].trim());
-      if (wd != selectedWeekday) continue;
-
-      final times = kv.sublist(1).join(':').split('-');
-      if (times.length != 2) continue;
-
-      final startParts = times[0].split(':');
-      final endParts = times[1].split(':');
-
-      int startHour = int.parse(startParts[0]);
-      int startMin = int.parse(startParts[1]);
-      int endHour = int.parse(endParts[0]);
-      int endMin = int.parse(endParts[1]);
-
-      DateTime current = DateTime(2000, 1, 1, startHour, startMin);
-      DateTime end = DateTime(2000, 1, 1, endHour, endMin);
-
-      while (current.add(const Duration(hours: 1)).compareTo(end) <= 0) {
-        final slotStart =
-            "${current.hour.toString().padLeft(2, '0')}:${current.minute.toString().padLeft(2, '0')}";
-        final next = current.add(const Duration(hours: 1));
-        final slotEnd =
-            "${next.hour.toString().padLeft(2, '0')}:${next.minute.toString().padLeft(2, '0')}";
-        timeSlots.add("$slotStart - $slotEnd");
-        current = next;
-      }
-    }
-
-    return timeSlots;
-  }
-
-  void _confirm() {
+  void confirm() {
     if (_selectedDate == null || _selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Vui lòng chọn ngày và giờ khám")),
@@ -227,7 +277,6 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
       return;
     }
 
-    // ✅ Lưu lịch vào danh sách tạm trước khi chuyển trang
     final bookingData = {
       "hoSoId": widget.hoSo["id"],
       "tenHoSo": widget.hoSo["ten"],
@@ -334,7 +383,6 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
                           final timeSlot = availableTimes[index];
                           bool isSelected = _selectedTime == timeSlot;
 
-                          // 📅 Kiểm tra buổi sáng hay chiều
                           int hour = int.parse(timeSlot.split(":")[0]);
                           Color backgroundColor =
                               (hour < 12) ? Colors.green : Colors.orange;
@@ -375,7 +423,7 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _confirm,
+                onPressed: confirm,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0165FC),
                   foregroundColor: Colors.white,

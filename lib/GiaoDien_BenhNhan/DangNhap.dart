@@ -5,6 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:doan_nhom06/GiaoDien_BenhNhan/DangKy.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/trangChu.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:5001/';
+  } else {
+    return 'http://10.0.2.2:5001/';
+  }
+}
 
 class DangNhap extends StatefulWidget {
   const DangNhap({super.key});
@@ -42,7 +54,7 @@ class _DangNhapState extends State<DangNhap> {
     });
 
     // Không dùng try-catch nữa
-    final uri = Uri.parse("http://localhost:5001/api/NguoiDung");
+    final uri = Uri.parse("${getBaseUrl()}api/NguoiDung");
     final response = await http.get(uri);
 
     if (response.statusCode == 200) {
@@ -67,12 +79,12 @@ class _DangNhapState extends State<DangNhap> {
         } else if (role == 'bác sĩ') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TrangChuBacSi()),
+            MaterialPageRoute(builder: (context) => TrangChuBacSi(userId: id)),
           );
-        } else if (role == 'Admin') {
+        } else if (role == 'quản trị viên') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TrangChuAdmin()),
+            MaterialPageRoute(builder: (context) => TrangChuAdmin(userId: id)),
           );
         }
       } else {

@@ -2,6 +2,18 @@ import 'package:doan_nhom06/GiaoDien_BenhNhan/DangNhap.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:5001/';
+  } else {
+    return 'http://10.0.2.2:5001/';
+  }
+}
 
 class DangKy extends StatefulWidget {
   const DangKy({super.key});
@@ -48,7 +60,7 @@ class _DangKyState extends State<DangKy> {
     });
 
     // Kiểm tra email trùng
-    final checkUrl = Uri.parse("http://localhost:5001/api/NguoiDung");
+    final checkUrl = Uri.parse("${getBaseUrl()}api/NguoiDung");
     final checkResp = await http.get(checkUrl);
     if (checkResp.statusCode == 200) {
       final List<dynamic> users = jsonDecode(checkResp.body);
@@ -64,7 +76,7 @@ class _DangKyState extends State<DangKy> {
       }
     }
 
-    final url = Uri.parse("http://localhost:5001/api/NguoiDung");
+    final url = Uri.parse("${getBaseUrl()}api/NguoiDung");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},

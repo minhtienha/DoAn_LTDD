@@ -1,9 +1,23 @@
+import 'package:doan_nhom06/GiaoDien_BenhNhan/t_TaoMoiHoSoBenhNhan.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_DatLichKhamChuyenKhoa.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_ChonBacSiKham.dart';
+
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:5001/';
+  } else {
+    return 'http://10.0.2.2:5001/';
+  }
+}
 
 class ChonHoSoScreen extends StatefulWidget {
   final int userId;
@@ -32,9 +46,7 @@ class _ChonHoSoScreenState extends State<ChonHoSoScreen> {
   Future<void> _loadHoSo() async {
     try {
       final resp = await http.get(
-        Uri.parse(
-          "http://localhost:5001/api/HoSoBenhNhan/NguoiDung/${widget.userId}",
-        ),
+        Uri.parse('${getBaseUrl()}api/HoSoBenhNhan/NguoiDung/${widget.userId}'),
       );
 
       if (resp.statusCode == 200) {
@@ -121,6 +133,57 @@ class _ChonHoSoScreenState extends State<ChonHoSoScreen> {
                 child: Text(
                   errMessage!,
                   style: const TextStyle(color: Colors.red),
+                ),
+              )
+              : danhSachHoSo.isEmpty
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      color: Colors.blue,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Bạn chưa có hồ sơ bệnh nhân nào.",
+                      style: TextStyle(fontSize: 16, color: Colors.blue),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => TaoHoSoBenhNhanScreen(
+                                  maNguoiDung: widget.userId,
+                                ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.person_add_alt,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        "Tạo hồ sơ mới",
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0165FC),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               )
               : ListView.builder(

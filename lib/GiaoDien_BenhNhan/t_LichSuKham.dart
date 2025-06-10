@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:5001/';
+  } else {
+    return 'http://10.0.2.2:5001/';
+  }
+}
 
 class LichSuKhamScreen extends StatefulWidget {
   final int maNguoiDung;
@@ -15,6 +27,7 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
   int? _selectedMaHoSo;
 
   String _selectedStatus = 'Tất cả';
+  String _selectedTrangThaiKham = 'Tất cả';
   DateTime? _startDate, _endDate;
   bool _sortNewestFirst = true;
 
@@ -30,7 +43,7 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
 
   Future<void> _loadProfiles() async {
     final url =
-        'http://localhost:5001/api/HoSoBenhNhan/NguoiDung/${widget.maNguoiDung}';
+        '${getBaseUrl()}api/HoSoBenhNhan/NguoiDung/${widget.maNguoiDung}';
     final resp = await http.get(Uri.parse(url));
     if (resp.statusCode == 200) {
       final data = jsonDecode(resp.body);
@@ -49,7 +62,7 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
       _history = [];
       return;
     }
-    final url = 'http://localhost:5001/api/LichKham/HoSo/$_selectedMaHoSo';
+    final url = '${getBaseUrl()}api/LichKham/HoSo/$_selectedMaHoSo';
     final resp = await http.get(Uri.parse(url));
     if (resp.statusCode == 200) {
       final data = jsonDecode(resp.body);
@@ -90,7 +103,7 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
     );
     if (confirm != true) return;
 
-    final url = 'http://localhost:5001/api/LichKham/Huy/$maLichKham';
+    final url = '${getBaseUrl()}api/LichKham/Huy/$maLichKham';
     final resp = await http.put(Uri.parse(url));
     if (resp.statusCode == 200) {
       await _loadHistory();
@@ -154,8 +167,13 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
           var filtered =
               _history.where((item) {
                 if (_selectedStatus != 'Tất cả' &&
-                    item['trangThai'] != _selectedStatus)
+                    item['trangThaiTT'] != _selectedStatus) {
                   return false;
+                }
+                if (_selectedTrangThaiKham != 'Tất cả' &&
+                    item['trangThaiKham'] != _selectedTrangThaiKham) {
+                  return false;
+                }
                 final dt = DateTime.parse(item['thoiGianKham']);
                 if (_startDate != null &&
                     dt.isBefore(
@@ -225,7 +243,25 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
                           .toList(),
                   onChanged: (v) => setState(() => _selectedStatus = v!),
                   decoration: const InputDecoration(
-                    labelText: 'Trạng thái',
+                    labelText: 'Trạng thái thanh toán',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: DropdownButtonFormField<String>(
+                  value: _selectedTrangThaiKham,
+                  items:
+                      ['Tất cả', 'Đã khám', 'Chưa khám']
+                          .map(
+                            (s) => DropdownMenuItem(value: s, child: Text(s)),
+                          )
+                          .toList(),
+                  onChanged: (v) => setState(() => _selectedTrangThaiKham = v!),
+                  decoration: const InputDecoration(
+                    labelText: 'Trạng thái khám',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -283,14 +319,14 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
                                         ),
                                         Chip(
                                           label: Text(
-                                            item['trangThai'] ?? '',
+                                            item['trangThaiTT'] ?? '',
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                           backgroundColor: statusColor(
-                                            item['trangThai'] ?? '',
+                                            item['trangThaiTT'] ?? '',
                                           ),
                                         ),
                                       ],
@@ -374,8 +410,37 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
                                         ],
                                       ),
                                     ),
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 6.0),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.verified,
+                                            size: 18,
+                                            color:
+                                                item['trangThaiKham'] ==
+                                                        'Đã khám'
+                                                    ? Colors.green
+                                                    : Colors.orange,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            item['trangThaiKham'] ?? '',
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              color:
+                                                  item['trangThaiKham'] ==
+                                                          'Đã khám'
+                                                      ? Colors.green
+                                                      : Colors.orange,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                     // Nút hủy lịch
-                                    if (item['trangThai'] != 'Đã huỷ')
+                                    if (item['trangThaiTT'] != 'Đã huỷ')
                                       Align(
                                         alignment: Alignment.bottomRight,
                                         child: TextButton.icon(

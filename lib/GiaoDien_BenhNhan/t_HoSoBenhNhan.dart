@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 't_TaoMoiHoSoBenhNhan.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:5001/';
+  } else {
+    return 'http://10.0.2.2:5001/';
+  }
+}
 
 class HoSoBenhNhanScreen extends StatefulWidget {
   final int maNguoiDung;
@@ -21,7 +33,7 @@ class _HoSoBenhNhanScreenState extends State<HoSoBenhNhanScreen> {
   }
 
   Future<List<Map<String, dynamic>>> fetchProfiles(int maNguoiDung) async {
-    final url = 'http://localhost:5001/api/HoSoBenhNhan/NguoiDung/$maNguoiDung';
+    final url = '${getBaseUrl()}api/HoSoBenhNhan/NguoiDung/$maNguoiDung';
 
     final resp = await http.get(Uri.parse(url));
     if (resp.statusCode == 200) {
@@ -55,7 +67,10 @@ class _HoSoBenhNhanScreenState extends State<HoSoBenhNhanScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0165FC),
-        title: const Text("Hồ sơ bệnh nhân"),
+        title: const Text(
+          "Hồ sơ bệnh nhân",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -79,25 +94,76 @@ class _HoSoBenhNhanScreenState extends State<HoSoBenhNhanScreen> {
           final danhSachHoSo = snapshot.data ?? [];
 
           if (danhSachHoSo.isEmpty) {
-            return Container(
-              padding: const EdgeInsets.all(16),
-              color: Colors.blue.shade50,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: Colors.blue.shade700,
-                    size: 24,
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.blue.shade50,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue.shade700,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          "Bạn chưa có hồ sơ bệnh nhân. Vui lòng tạo mới hồ sơ để đặt khám.",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF0165FC),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      "Bạn chưa có hồ sơ bệnh nhân. Vui lòng tạo mới hồ sơ để đặt khám.",
-                      style: TextStyle(fontSize: 14, color: Color(0xFF0165FC)),
+                ),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => TaoHoSoBenhNhanScreen(
+                                  maNguoiDung: widget.maNguoiDung,
+                                ),
+                          ),
+                        ).then((value) {
+                          setState(() {
+                            _futureProfiles = fetchProfiles(widget.maNguoiDung);
+                          });
+                        });
+                      },
+                      icon: const Icon(
+                        Icons.person_add_alt,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        "Tạo hồ sơ mới",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0165FC),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             );
           }
 
