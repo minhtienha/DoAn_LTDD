@@ -9,10 +9,7 @@ import 'package:doan_nhom06/GiaoDien_BenhNhan/t_HoSoBenhNhan.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_ChonHoSoKhamBenh.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_LichSuKham.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/DangNhap.dart';
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 String getBaseUrl() {
   if (kIsWeb) {

@@ -3,9 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 't_DanhSachLichChon.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/trangChu.dart';
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 String getBaseUrl() {

@@ -6,10 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_DatLichKhamChuyenKhoa.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_ChonBacSiKham.dart';
 
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 String getBaseUrl() {
   if (kIsWeb) {
