@@ -27,6 +27,29 @@ class _TaoHoSoBenhNhanScreenState extends State<TaoHoSoBenhNhanScreen> {
   final _moiQuanHeController = TextEditingController(text: 'Bản thân');
 
   bool _loading = false;
+  List<Map<String, dynamic>> _existingProfiles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchExistingProfiles();
+  }
+
+  Future<void> _fetchExistingProfiles() async {
+    try {
+      final resp = await http.get(
+        Uri.parse(
+          '${getBaseUrl()}api/HoSoBenhNhan?maNguoiDung=${widget.maNguoiDung}',
+        ),
+      );
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as List;
+        setState(() {
+          _existingProfiles = data.whereType<Map<String, dynamic>>().toList();
+        });
+      }
+    } catch (_) {}
+  }
 
   Future<void> _chonNgaySinh(BuildContext ctx) async {
     final picked = await showDatePicker(
@@ -58,14 +81,28 @@ class _TaoHoSoBenhNhanScreenState extends State<TaoHoSoBenhNhanScreen> {
   }
 
   String? _validate() {
-    if (_hoTenController.text.trim().isEmpty) {
-      return 'Vui lòng nhập tên bệnh nhân';
-    }
+    final name = _hoTenController.text.trim();
+    if (name.isEmpty) return 'Vui lòng nhập tên bệnh nhân';
     if (_ngaySinh == null) return 'Vui lòng chọn ngày sinh';
     if (_gioiTinh == null) return 'Vui lòng chọn giới tính';
-    if (_moiQuanHeController.text.trim().isEmpty) {
-      return 'Vui lòng nhập mối quan hệ';
-    }
+    final relation = _moiQuanHeController.text.trim();
+    if (relation.isEmpty) return 'Vui lòng nhập mối quan hệ';
+
+    // Kiểm tra trùng: so sánh tên và ngày sinh
+    final exists = _existingProfiles.any((p) {
+      final existingName = p['hoVaTen']?.toString().trim() ?? '';
+      if (existingName != name) return false;
+      try {
+        final existingDate = DateTime.parse(p['ngaySinh'].toString());
+        return existingDate.year == _ngaySinh!.year &&
+            existingDate.month == _ngaySinh!.month &&
+            existingDate.day == _ngaySinh!.day;
+      } catch (_) {
+        return false;
+      }
+    });
+    if (exists) return 'Hồ sơ này đã tồn tại';
+
     return null;
   }
 
@@ -81,7 +118,7 @@ class _TaoHoSoBenhNhanScreenState extends State<TaoHoSoBenhNhanScreen> {
       "maNguoiDung": widget.maNguoiDung,
       "hoVaTen": _hoTenController.text.trim(),
       "ngaySinh":
-          "${_ngaySinh!.year}-${_ngaySinh!.month.toString().padLeft(2, '0')}-${_ngaySinh!.day.toString().padLeft(2, '0')}",
+          '${_ngaySinh!.year}-${_ngaySinh!.month.toString().padLeft(2, '0')}-${_ngaySinh!.day.toString().padLeft(2, '0')}',
       "gioiTinh": _gioiTinh,
       "moiQuanHe": _moiQuanHeController.text.trim(),
       "ngayTao": DateTime.now().toIso8601String(),
@@ -96,14 +133,7 @@ class _TaoHoSoBenhNhanScreenState extends State<TaoHoSoBenhNhanScreen> {
       setState(() => _loading = false);
 
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) =>
-                    HoSoBenhNhanScreen(maNguoiDung: widget.maNguoiDung),
-          ),
-        );
+        Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(
           context,

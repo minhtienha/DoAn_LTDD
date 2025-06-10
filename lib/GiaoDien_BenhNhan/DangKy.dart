@@ -1,4 +1,4 @@
-import 'package:doan_nhom06/GiaoDien_BenhNhan/DangNhap.dart';
+import 'package:doan_nhom06/DangNhap.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -98,7 +98,10 @@ class _DangKyState extends State<DangKy> {
         ),
       );
       await Future.delayed(const Duration(seconds: 2));
-      Navigator.pop(context); // Quay về trang đăng nhập
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => DangNhap()),
+      );
     } else {
       setState(() {
         _errorMessage = "Đăng ký thất bại: ${response.body}";

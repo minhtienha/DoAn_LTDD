@@ -175,7 +175,7 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
       errCK = null;
     });
     try {
-      final resp = await http.get(Uri.parse("${getBaseUrl()}/ChuyenKhoa"));
+      final resp = await http.get(Uri.parse("${getBaseUrl()}api/ChuyenKhoa"));
       if (resp.statusCode == 200) {
         final js = jsonDecode(resp.body) as List;
         chuyenKhoaList =
@@ -186,6 +186,7 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
                   (m) => {"tenChuyenKhoa": m["tenChuyenKhoa"], "gia": m["gia"]},
                 )
                 .toList();
+        print(chuyenKhoaList);
       }
     } catch (e) {
       errCK = "Không thể kết nối: $e";
@@ -234,30 +235,6 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
       ).showSnackBar(const SnackBar(content: Text("Đang tải chuyên khoa...")));
       return;
     }
-    // if (errCK != null) {
-    //   showDialog(
-    //     context: context,
-    //     builder:
-    //         (_) => AlertDialog(
-    //           title: const Text("Lỗi"),
-    //           content: Text(errCK!),
-    //           actions: [
-    //             TextButton(
-    //               onPressed: () {
-    //                 Navigator.pop(context);
-    //                 _loadChuyenKhoa();
-    //               },
-    //               child: const Text("Thử lại"),
-    //             ),
-    //             TextButton(
-    //               onPressed: () => Navigator.pop(context),
-    //               child: const Text("Đóng"),
-    //             ),
-    //           ],
-    //         ),
-    //   );
-    //   return;
-    // }
     showDialog(
       context: context,
       builder:
@@ -322,32 +299,6 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
       await _loadAvailableSlots();
     }
   }
-
-  // /// Lọc bác sĩ ra những người làm việc đúng chuyên khoa và thứ
-  // void _filterDoctors() {
-  //   if (selectedCK == null || selectedDate == null) {
-  //     availDocs = [];
-  //     docSlots = {};
-  //   } else {
-  //     final wd = selectedDate!.weekday;
-  //     final tmpDocs = <Doctor>[];
-  //     final tmpMap = <Doctor, List<TimeRange>>{};
-  //     for (var doc in doctors) {
-  //       if (doc.specialty != selectedCK) continue; // so sánh String
-  //       final ranges = doc.schedule[wd] ?? [];
-  //       if (ranges.isEmpty) continue;
-  //       final slots = ranges.expand(splitHourly).toList();
-  //       if (slots.isNotEmpty) {
-  //         tmpDocs.add(doc);
-  //         tmpMap[doc] = slots;
-  //       }
-  //     }
-  //     setState(() {
-  //       availDocs = tmpDocs;
-  //       docSlots = tmpMap;
-  //     });
-  //   }
-  // }
 
   /// Tải slot còn trống của bác sĩ
   Future<void> _loadAvailableSlots() async {
@@ -568,20 +519,19 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            if (selectedDate != null && availableSlots.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  "Không có lịch trống cho ngày này. Vui lòng chọn ngày khác.",
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
 
-            // Danh sách bác sĩ + khung giờ
-            // if (selectedDate != null)
-            //   const Padding(
-            //     padding: EdgeInsets.symmetric(vertical: 16),
-            //     child: Text(
-            //       "Hệ thống sẽ tự động chọn bác sĩ và khung giờ phù hợp nhất.",
-            //       style: TextStyle(
-            //         color: Colors.blue,
-            //         fontWeight: FontWeight.bold,
-            //       ),
-            //     ),
-            //   ),
-            const SizedBox(height: 8),
             if (availableSlots.isNotEmpty)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

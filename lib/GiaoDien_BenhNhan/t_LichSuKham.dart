@@ -78,7 +78,7 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
     setState(() {});
   }
 
-  Future<void> _huyLich(int maLichKham) async {
+  Future<void> _huyLich(int maLichKham, String ngayGioKham, int maBS) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder:
@@ -102,9 +102,20 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
 
     final url = '${getBaseUrl()}api/LichKham/Huy/$maLichKham';
     final resp = await http.put(Uri.parse(url));
+
     if (resp.statusCode == 200) {
       await _loadHistory();
       setState(() {});
+      await http.post(
+        Uri.parse("${getBaseUrl()}api/ThongBao"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "maNguoiNhan": maBS,
+          "noiDung": "Bệnh nhân đã hủy lịch khám ngày $ngayGioKham",
+          "trangThaiDoc": false,
+          "ngayTao": DateTime.now().toIso8601String(),
+        }),
+      );
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Đã huỷ lịch thành công.')));
@@ -344,28 +355,28 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
                                         ),
                                       ],
                                     ),
-                                    if ((item['khungGio'] ?? '').isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 6.0,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.access_time,
-                                              size: 18,
-                                              color: Colors.grey,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              item['khungGio'] ?? '',
-                                              style: const TextStyle(
-                                                fontSize: 15,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                                    // if ((item['khungGio'] ?? '').isNotEmpty)
+                                    //   Padding(
+                                    //     padding: const EdgeInsets.only(
+                                    //       top: 6.0,
+                                    //     ),
+                                    //     child: Row(
+                                    //       children: [
+                                    //         const Icon(
+                                    //           Icons.access_time,
+                                    //           size: 18,
+                                    //           color: Colors.grey,
+                                    //         ),
+                                    //         const SizedBox(width: 6),
+                                    //         Text(
+                                    //           item['khungGio'] ?? '',
+                                    //           style: const TextStyle(
+                                    //             fontSize: 15,
+                                    //           ),
+                                    //         ),
+                                    //       ],
+                                    //     ),
+                                    //   ),
                                     Padding(
                                       padding: const EdgeInsets.only(top: 6.0),
                                       child: Row(
@@ -452,9 +463,13 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          onPressed:
-                                              () =>
-                                                  _huyLich(item['maLichKham']),
+                                          onPressed: () async {
+                                            await _huyLich(
+                                              item['maLichKham'] as int,
+                                              dateStr,
+                                              bacSi['maBacSi'] as int,
+                                            );
+                                          },
                                         ),
                                       ),
                                   ],

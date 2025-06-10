@@ -1,14 +1,10 @@
-// File: lib/GiaoDien_BenhNhan/TrangChu.dart
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
-// Import các màn hình con (giữ y như cấu trúc của bạn)
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_HoSoBenhNhan.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_ChonHoSoKhamBenh.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_LichSuKham.dart';
-import 'package:doan_nhom06/GiaoDien_BenhNhan/DangNhap.dart';
+import 'package:doan_nhom06/DangNhap.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 String getBaseUrl() {
@@ -28,11 +24,9 @@ class TrangChu extends StatefulWidget {
 }
 
 class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
-  // Animation
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  // Thêm biến lưu trữ tên người dùng
   String _userName = "";
   String _userEmail = "";
   bool _isLoadingName = true;
@@ -42,7 +36,6 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    // Khởi tạo animation
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -52,7 +45,12 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
     );
     _animationController.forward();
 
-    // Gọi API lấy tên người dùng dựa vào widget.userId
+    _fetchUserName();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _fetchUserName();
   }
 
@@ -62,7 +60,6 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  /// Hàm gọi API để lấy thông tin người dùng theo ID (chỉ lấy field hoVaTen)
   Future<void> _fetchUserName() async {
     final int id = widget.userId;
     final String url = "${getBaseUrl()}api/NguoiDung/$id";

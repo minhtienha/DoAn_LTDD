@@ -72,17 +72,36 @@ class _DangNhapState extends State<DangNhap> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => TrangChu(userId: id)),
-          );
+          ).then((_) {
+            _emailController.clear();
+            _passwordController.clear();
+            setState(() {
+              _errorMessage = null;
+            });
+          });
         } else if (role == 'bác sĩ') {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => TrangChuBacSi(userId: id)),
-          );
+          ).then((_) {
+            _emailController.clear();
+            _passwordController.clear();
+            setState(() {
+              _errorMessage = null;
+            });
+          });
         } else if (role == 'quản trị viên') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => TrangChuAdmin(userId: id)),
-          );
+          Navigator.of(context)
+              .push(
+                MaterialPageRoute(builder: (_) => TrangChuAdmin(userId: id)),
+              )
+              .then((_) {
+                _emailController.clear();
+                _passwordController.clear();
+                setState(() {
+                  _errorMessage = null;
+                });
+              });
         }
       } else {
         setState(() {
@@ -255,6 +274,11 @@ class _DangNhapState extends State<DangNhap> {
                         context,
                         MaterialPageRoute(builder: (context) => const DangKy()),
                       );
+                      _emailController.clear();
+                      _passwordController.clear();
+                      setState(() {
+                        _errorMessage = null;
+                      });
                     },
                     child: const Text(
                       "Chưa có tài khoản? Đăng ký ngay",
