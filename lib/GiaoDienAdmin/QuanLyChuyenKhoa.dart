@@ -22,6 +22,7 @@ class QuanLyDanhMucChuyenKhoa extends StatefulWidget {
 class _QuanLyDanhMucChuyenKhoaState extends State<QuanLyDanhMucChuyenKhoa> {
   List<dynamic> chuyenKhoaList = [];
   bool loading = true;
+  bool showActive = true;
 
   @override
   void initState() {
@@ -33,9 +34,39 @@ class _QuanLyDanhMucChuyenKhoaState extends State<QuanLyDanhMucChuyenKhoa> {
     setState(() => loading = true);
     final resp = await http.get(Uri.parse('${getBaseUrl()}api/ChuyenKhoa'));
     if (resp.statusCode == 200) {
-      chuyenKhoaList = jsonDecode(resp.body) as List;
+      final list = jsonDecode(resp.body) as List;
+      // Lọc theo trạng thái DaXoa dựa vào showActive
+      chuyenKhoaList =
+          list.where((ck) {
+            final daXoa = ck['daXoa'] ?? false;
+            return showActive ? daXoa == false : daXoa == true;
+          }).toList();
     }
     setState(() => loading = false);
+  }
+
+  Future<void> updateDaXoaChuyenKhoa(int maChuyenKhoa, bool daXoa) async {
+    final resp = await http.put(
+      Uri.parse('${getBaseUrl()}api/ChuyenKhoa/XoaChuyenKhoa/$maChuyenKhoa'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(daXoa),
+    );
+    if (resp.statusCode == 204 || resp.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            daXoa
+                ? "Chuyên khoa đã được ẩn"
+                : "Chuyên khoa đã được kích hoạt lại",
+          ),
+        ),
+      );
+      fetchChuyenKhoa();
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Cập nhật trạng thái thất bại")));
+    }
   }
 
   void showDialogChuyenKhoa({Map<String, dynamic>? data}) {
@@ -129,7 +160,7 @@ class _QuanLyDanhMucChuyenKhoaState extends State<QuanLyDanhMucChuyenKhoa> {
                   // Sửa
                   final resp = await http.put(
                     Uri.parse(
-                      'http://localhost:5001/api/ChuyenKhoa/${data['maChuyenKhoa']}',
+                      '${getBaseUrl()}api/ChuyenKhoa/${data['maChuyenKhoa']}',
                     ),
                     headers: {"Content-Type": "application/json"},
                     body: jsonEncode({
@@ -159,28 +190,35 @@ class _QuanLyDanhMucChuyenKhoaState extends State<QuanLyDanhMucChuyenKhoa> {
     );
   }
 
-  Future<void> deleteChuyenKhoa(int maChuyenKhoa) async {
-    final resp = await http.delete(
-      Uri.parse('${getBaseUrl()}api/ChuyenKhoa/$maChuyenKhoa'),
-    );
-    if (resp.statusCode == 200 || resp.statusCode == 204) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Xóa thành công")));
-      fetchChuyenKhoa();
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Xóa thất bại")));
-    }
-  }
+  // Future<void> deleteChuyenKhoa(int maChuyenKhoa) async {
+  //   final resp = await http.delete(
+  //     Uri.parse('${getBaseUrl()}api/ChuyenKhoa/$maChuyenKhoa'),
+  //   );
+  //   if (resp.statusCode == 200 || resp.statusCode == 204) {
+  //     ScaffoldMessenger.of(
+  //       context,
+  //     ).showSnackBar(SnackBar(content: Text("Xóa thành công")));
+  //     fetchChuyenKhoa();
+  //   } else {
+  //     ScaffoldMessenger.of(
+  //       context,
+  //     ).showSnackBar(SnackBar(content: Text("Xóa thất bại")));
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Quản Lý Danh Mục Chuyên Khoa"),
-        backgroundColor: Colors.blue,
+        title: const Text(
+          "Quản Lý Danh Mục Chuyên Khoa",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        backgroundColor: const Color(0xFF0165FC),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -202,6 +240,52 @@ class _QuanLyDanhMucChuyenKhoaState extends State<QuanLyDanhMucChuyenKhoa> {
             ),
           ),
         ],
+        iconTheme: IconThemeData(color: Colors.white),
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(48),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                onPressed: () {
+                  if (!showActive) {
+                    setState(() {
+                      showActive = true;
+                      fetchChuyenKhoa();
+                    });
+                  }
+                },
+                child: Text(
+                  "Còn hoạt động",
+                  style: TextStyle(
+                    color: showActive ? Colors.white : Colors.white70,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              TextButton(
+                onPressed: () {
+                  if (showActive) {
+                    setState(() {
+                      showActive = false;
+                      fetchChuyenKhoa();
+                    });
+                  }
+                },
+                child: Text(
+                  "Không hoạt động",
+                  style: TextStyle(
+                    color: showActive ? Colors.white70 : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -257,40 +341,18 @@ class _QuanLyDanhMucChuyenKhoaState extends State<QuanLyDanhMucChuyenKhoa> {
                             if (value == "edit") {
                               showDialogChuyenKhoa(data: ck);
                             } else if (value == "delete") {
-                              showDialog(
-                                context: context,
-                                builder:
-                                    (context) => AlertDialog(
-                                      title: Text("Xác nhận xóa"),
-                                      content: Text(
-                                        "Bạn có chắc muốn xóa chuyên khoa này?",
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed:
-                                              () => Navigator.pop(context),
-                                          child: Text("Hủy"),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                            deleteChuyenKhoa(
-                                              ck['maChuyenKhoa'],
-                                            );
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red,
-                                          ),
-                                          child: Text("Xóa"),
-                                        ),
-                                      ],
-                                    ),
-                              );
+                              // Ẩn chuyên khoa
+                              updateDaXoaChuyenKhoa(ck['maChuyenKhoa'], true);
+                            } else if (value == "restore") {
+                              // Kích hoạt lại chuyên khoa
+                              updateDaXoaChuyenKhoa(ck['maChuyenKhoa'], false);
                             }
                           },
-                          itemBuilder:
-                              (BuildContext context) => [
-                                const PopupMenuItem(
+                          itemBuilder: (BuildContext context) {
+                            if (showActive) {
+                              // Chuyên khoa còn hoạt động: cho edit và "xóa"
+                              return [
+                                PopupMenuItem(
                                   value: "edit",
                                   child: Row(
                                     children: [
@@ -300,17 +362,43 @@ class _QuanLyDanhMucChuyenKhoaState extends State<QuanLyDanhMucChuyenKhoa> {
                                     ],
                                   ),
                                 ),
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: "delete",
                                   child: Row(
                                     children: [
                                       Icon(Icons.delete, color: Colors.red),
                                       SizedBox(width: 8),
-                                      Text("Xóa"),
+                                      Text("Xoá chuyên khoa"),
                                     ],
                                   ),
                                 ),
-                              ],
+                              ];
+                            } else {
+                              // Chuyên khoa không hoạt động: chỉ cho edit và "thêm lại"
+                              return [
+                                PopupMenuItem(
+                                  value: "edit",
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit, color: Colors.blue),
+                                      SizedBox(width: 8),
+                                      Text("Chỉnh sửa"),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: "restore",
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.refresh, color: Colors.green),
+                                      SizedBox(width: 8),
+                                      Text("Thêm lại"),
+                                    ],
+                                  ),
+                                ),
+                              ];
+                            }
+                          },
                         ),
                       ),
                     );

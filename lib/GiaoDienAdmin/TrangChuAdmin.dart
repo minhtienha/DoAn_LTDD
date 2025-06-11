@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'package:doan_nhom06/GiaoDienAdmin/QuanLyBacSi.dart';
+import 'package:doan_nhom06/GiaoDienAdmin/QuanLyBenhNhan.dart';
+import 'package:doan_nhom06/GiaoDienAdmin/QuanLyChuyenKhoa.dart';
+import 'package:doan_nhom06/GiaoDienAdmin/QuanLyDonXinNghi.dart';
+import 'package:doan_nhom06/GiaoDienAdmin/QuanLyLichKham.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
-import 'QuanLyBacSi.dart';
-import 'QuanLyBenhNhan.dart';
-import 'QuanLyChuyenKhoa.dart';
 
 String getBaseUrl() {
   if (kIsWeb) {
@@ -58,8 +59,20 @@ class _TrangChuAdminState extends State<TrangChuAdmin> {
       );
       if (respNguoiDung.statusCode == 200) {
         final list = jsonDecode(respNguoiDung.body) as List;
-        soBacSi = list.where((e) => e['vaiTro'] == 'bác sĩ').length;
+        // soBacSi = list.where((e) => e['vaiTro'] == 'bác sĩ').length;
         soBenhNhan = list.where((e) => e['vaiTro'] == 'bệnh nhân').length;
+      }
+      final respBacSi = await http.get(Uri.parse('${getBaseUrl()}api/BacSi'));
+      if (respBacSi.statusCode == 200) {
+        final list = jsonDecode(respBacSi.body) as List;
+        soBacSi =
+            list.where((e) {
+              final daXoa = e['daXoa'];
+              if (daXoa == null) return true;
+              if (daXoa is bool) return daXoa == false;
+              if (daXoa is int) return daXoa == 0;
+              return false;
+            }).length;
       }
       // Lấy số lượng chuyên khoa từ api/chuyenkhoa
       final respChuyenKhoa = await http.get(
@@ -67,7 +80,16 @@ class _TrangChuAdminState extends State<TrangChuAdmin> {
       );
       if (respChuyenKhoa.statusCode == 200) {
         final list = jsonDecode(respChuyenKhoa.body) as List;
-        soChuyenKhoa = list.length;
+        final chuyenKhoaChuaXoa =
+            list.where((ck) {
+              final daXoa = ck['daXoa'];
+              if (daXoa == null) return true;
+              if (daXoa is bool) return daXoa == false;
+              if (daXoa is int) return daXoa == 0;
+              return true;
+            }).toList();
+
+        soChuyenKhoa = chuyenKhoaChuaXoa.length;
       }
       setState(() {
         loading = false;
@@ -92,12 +114,32 @@ class _TrangChuAdminState extends State<TrangChuAdmin> {
             fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFF0165FC),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () {
-              Navigator.pop(context);
+            onPressed: () async {
+              final shouldLogout = await showDialog<bool>(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: const Text('Xác nhận'),
+                      content: const Text('Bạn có chắc muốn đăng xuất?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Hủy'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Đăng xuất'),
+                        ),
+                      ],
+                    ),
+              );
+              if (shouldLogout == true) {
+                Navigator.pop(context);
+              }
             },
           ),
         ],
@@ -129,7 +171,7 @@ class _TrangChuAdminState extends State<TrangChuAdmin> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _buildStatCard("Bác sĩ", soBacSi, Colors.orange),
-                        _buildStatCard("Bệnh nhân", soBenhNhan, Colors.green),
+                        _buildStatCard("Người dùng", soBenhNhan, Colors.green),
                         _buildStatCard(
                           "Chuyên khoa",
                           soChuyenKhoa,
@@ -160,19 +202,26 @@ class _TrangChuAdminState extends State<TrangChuAdmin> {
                           Colors.orange,
                           QuanLyTaiKhoanBacSi(),
                         ),
-                        // buildDashboardItem(
-                        //   context,
-                        //   "Phân công chuyên khoa",
-                        //   Icons.assignment,
-                        //   Colors.purple,
-                        //   PhanCongChuyenKhoa(),
-                        // ),
                         buildDashboardItem(
                           context,
                           "QL danh mục chuyên khoa",
                           Icons.category,
                           Colors.teal,
                           QuanLyDanhMucChuyenKhoa(),
+                        ),
+                        buildDashboardItem(
+                          context,
+                          "QL thông tin lịch khám",
+                          Icons.schedule,
+                          Colors.redAccent,
+                          QuanLyLichKham(),
+                        ),
+                        buildDashboardItem(
+                          context,
+                          "QL đơn xin nghỉ phép",
+                          Icons.hourglass_empty,
+                          Colors.redAccent,
+                          DonXinNghiPhep(),
                         ),
                       ],
                     ),
@@ -223,7 +272,6 @@ class _TrangChuAdminState extends State<TrangChuAdmin> {
             context,
             MaterialPageRoute(builder: (context) => page),
           );
-          // Khi quay lại, tự động reload dashboard
           fetchDashboard();
           infoUser();
         },

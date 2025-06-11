@@ -158,7 +158,9 @@ class _ChonHoSoScreenState extends State<ChonHoSoScreen> {
                                   maNguoiDung: widget.userId,
                                 ),
                           ),
-                        );
+                        ).then((value) {
+                          setState(() {});
+                        });
                       },
                       icon: const Icon(
                         Icons.person_add_alt,

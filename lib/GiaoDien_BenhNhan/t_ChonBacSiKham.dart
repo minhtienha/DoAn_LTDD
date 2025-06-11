@@ -85,16 +85,22 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
     final resp = await http.get(Uri.parse("${getBaseUrl()}api/ChuyenKhoa"));
     if (resp.statusCode == 200) {
       final js = jsonDecode(resp.body) as List;
+
       chuyenKhoaList =
           js
               .whereType<Map<String, dynamic>>()
+              .where((m) => (m['daXoa'] == false || m['daXoa'] == null))
               .where(
                 (m) => m.containsKey("tenChuyenKhoa") && m.containsKey("gia"),
               )
               .map(
                 (m) => {
+                  "maChuyenKhoa": m["maChuyenKhoa"],
                   "tenChuyenKhoa": m["tenChuyenKhoa"] as String,
                   "gia": m["gia"] as num,
+                  "daXoa": m['daXoa'] ?? false,
+                  "moTa": m['moTa'] ?? '',
+                  "ngayTao": m['ngayTao'] ?? '',
                 },
               )
               .toList();
@@ -109,8 +115,7 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
     if (resp.statusCode == 200) {
       final data = jsonDecode(resp.body) as List;
       danhSachBacSi =
-          data.map((e) {
-            // Chuẩn hóa giá trị giới tính
+          data.where((e) => e['daXoa'] == false || e['daXoa'] == null).map((e) {
             final rawGt = (e['gioiTinh'] as String? ?? '').trim().toLowerCase();
             String normalizedGt;
             if (rawGt == 'nam') {

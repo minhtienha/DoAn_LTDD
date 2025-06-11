@@ -157,6 +157,8 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
   // Danh sách tạm để lưu lịch đặt
   late List<Map<String, dynamic>> selectedBookings;
 
+  List<Map<String, dynamic>> leaveRequests = [];
+
   List<Map<String, dynamic>> availableSlots = [];
   Map<String, dynamic>? selectedSlotInfo;
 
@@ -166,6 +168,7 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
     selectedBookings = widget.selectedBookings;
     _loadChuyenKhoa();
     _loadDoctors();
+    _fetchLeaveRequests();
   }
 
   /// Tải danh sách chuyên khoa
@@ -182,6 +185,7 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
             js
                 .whereType<Map<String, dynamic>>()
                 .where((m) => m.containsKey("tenChuyenKhoa"))
+                .where((m) => (m['daXoa'] == false || m['daXoa'] == null))
                 .map(
                   (m) => {"tenChuyenKhoa": m["tenChuyenKhoa"], "gia": m["gia"]},
                 )
@@ -225,6 +229,46 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
     setState(() {
       loadingDocs = false;
     });
+  }
+
+  Future<void> _fetchLeaveRequests() async {
+    try {
+      final url = '${getBaseUrl()}api/NghiPhepBacSi';
+      final resp = await http.get(Uri.parse(url));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as List;
+        setState(() {
+          leaveRequests =
+              data
+                  .where(
+                    (e) => e['trangThai'] == 'Đã duyệt',
+                  ) // Chỉ lấy nghỉ đã duyệt
+                  .cast<Map<String, dynamic>>()
+                  .toList();
+        });
+      }
+    } catch (e) {
+      print('Lỗi lấy đơn nghỉ phép: $e');
+    }
+  }
+
+  bool isDoctorOnLeave(Doctor doc, DateTime date) {
+    final bacSiId = int.parse(doc.id);
+    for (var leave in leaveRequests) {
+      if (leave['maBacSi'] == bacSiId) {
+        DateTime start = DateTime.parse(leave['ngayBatDau']);
+        DateTime end = DateTime.parse(leave['ngayKetThuc']);
+        DateTime checkDay = DateTime(date.year, date.month, date.day);
+        start = DateTime(start.year, start.month, start.day);
+        end = DateTime(end.year, end.month, end.day);
+        if (checkDay.isAtSameMomentAs(start) ||
+            checkDay.isAtSameMomentAs(end) ||
+            (checkDay.isAfter(start) && checkDay.isBefore(end))) {
+          return true; // bác sĩ nghỉ ngày đó
+        }
+      }
+    }
+    return false; // bác sĩ không nghỉ ngày đó
   }
 
   /// Chọn chuyên khoa
@@ -308,7 +352,8 @@ class _ChonChuyenKhoaScreenState extends State<ChonChuyenKhoaScreen> {
     final List<Doctor> ckDocs =
         doctors.where((doc) {
           return doc.specialty == selectedCK &&
-              (doc.schedule[wd]?.isNotEmpty ?? false);
+              (doc.schedule[wd]?.isNotEmpty ?? false) &&
+              !isDoctorOnLeave(doc, selectedDate!); // loại bác sĩ nghỉ
         }).toList();
 
     final Map<String, List<Doctor>> slotToDoctors = {};

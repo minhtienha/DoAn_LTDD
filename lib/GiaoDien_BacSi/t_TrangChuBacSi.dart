@@ -1,5 +1,5 @@
-import 'package:doan_nhom06/GiaoDien_BacSi/LichKhamBenh.dart';
-import 'package:doan_nhom06/DangNhap.dart';
+import 'package:doan_nhom06/GiaoDien_BacSi/t_LichKhamBenh.dart';
+import 'package:doan_nhom06/GiaoDien_BacSi/t_XinNghiPhep.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -26,6 +26,7 @@ class _TrangChuBacSiState extends State<TrangChuBacSi> {
   Map<String, dynamic>? bacSi;
   Timer? _timer;
   int _soThongBaoMoi = 0;
+
   Future<void> _loadBacSi() async {
     final url = '${getBaseUrl()}api/BacSi/${widget.userId}';
     final resp = await http.get(Uri.parse(url));
@@ -51,47 +52,57 @@ class _TrangChuBacSiState extends State<TrangChuBacSi> {
         ).compareTo(DateTime.parse(a['ngayTao'])),
       );
     }
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder:
-          (_) => Container(
-            height: 400,
-            padding: EdgeInsets.all(16),
-            child:
-                thongBaoList.isEmpty
-                    ? Center(child: Text("Không có thông báo nào!"))
-                    : ListView.builder(
-                      itemCount: thongBaoList.length,
-                      itemBuilder: (ctx, i) {
-                        final tb = thongBaoList[i];
-                        return ListTile(
-                          leading: Icon(
-                            Icons.notifications,
-                            color:
-                                tb['trangThaiDoc'] == false ||
-                                        tb['trangThaiDoc'] == null
-                                    ? Colors.red
-                                    : Colors.blue,
-                          ),
-                          title: Text(tb['noiDung'] ?? ''),
-                          subtitle: Text(
-                            tb['ngayTao'] != null
-                                ? tb['ngayTao']
-                                    .toString()
-                                    .substring(0, 16)
-                                    .replaceFirst('T', ' ')
-                                : '',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+          (context) => DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.4,
+            minChildSize: 0.2,
+            maxChildSize: 0.7,
+            builder: (context, scrollController) {
+              return Container(
+                padding: EdgeInsets.all(16),
+                child:
+                    thongBaoList.isEmpty
+                        ? Center(child: Text("Không có thông báo nào!"))
+                        : ListView.builder(
+                          controller: scrollController,
+                          itemCount: thongBaoList.length,
+                          itemBuilder: (ctx, i) {
+                            final tb = thongBaoList[i];
+                            return ListTile(
+                              leading: Icon(
+                                Icons.notifications,
+                                color:
+                                    (tb['trangThaiDoc'] == false ||
+                                            tb['trangThaiDoc'] == null)
+                                        ? Colors.red
+                                        : Colors.blue,
+                              ),
+                              title: Text(tb['noiDung'] ?? ''),
+                              subtitle: Text(
+                                tb['ngayTao'] != null
+                                    ? tb['ngayTao']
+                                        .toString()
+                                        .substring(0, 16)
+                                        .replaceFirst('T', ' ')
+                                    : '',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+              );
+            },
           ),
     );
 
@@ -118,7 +129,7 @@ class _TrangChuBacSiState extends State<TrangChuBacSi> {
   }
 
   Future<void> _capNhatSoThongBaoMoi() async {
-    final url = 'http://localhost:5001/api/ThongBao';
+    final url = '${getBaseUrl()}/ThongBao';
     final resp = await http.get(Uri.parse(url));
     if (resp.statusCode == 200) {
       final thongBaoList =
@@ -133,6 +144,16 @@ class _TrangChuBacSiState extends State<TrangChuBacSi> {
         _soThongBaoMoi = thongBaoList.length;
       });
     }
+  }
+
+  Future<int?> _fetchMaBacSi(int maNguoiDung) async {
+    final url = '${getBaseUrl()}api/BacSi/byNguoiDung/$maNguoiDung';
+    final resp = await http.get(Uri.parse(url));
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body);
+      return data['maBacSi'];
+    }
+    return null;
   }
 
   @override
@@ -163,9 +184,10 @@ class _TrangChuBacSiState extends State<TrangChuBacSi> {
     return Scaffold(
       backgroundColor: Colors.blue[50],
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFF0165FC),
         elevation: 0,
         automaticallyImplyLeading: false,
+        iconTheme: IconThemeData(color: Colors.white),
         title: Row(
           children: [
             CircleAvatar(
@@ -187,7 +209,11 @@ class _TrangChuBacSiState extends State<TrangChuBacSi> {
                 ),
                 Text(
                   "Chuyên khoa: ${bacSi?['chuyenKhoa']?['tenChuyenKhoa'] ?? ''}",
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  style: TextStyle(
+                    color: Colors.yellowAccent,
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ],
             ),
@@ -226,10 +252,28 @@ class _TrangChuBacSiState extends State<TrangChuBacSi> {
             IconButton(
               icon: Icon(Icons.logout, color: Colors.white),
               tooltip: "Đăng xuất",
-              onPressed: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => DangNhap()),
+              onPressed: () async {
+                final shouldLogout = await showDialog<bool>(
+                  context: context,
+                  builder:
+                      (context) => AlertDialog(
+                        title: const Text('Xác nhận'),
+                        content: const Text('Bạn có chắc muốn đăng xuất?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Hủy'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Đăng xuất'),
+                          ),
+                        ],
+                      ),
                 );
+                if (shouldLogout == true) {
+                  Navigator.pop(context);
+                }
               },
             ),
           ],
@@ -291,7 +335,53 @@ class _TrangChuBacSiState extends State<TrangChuBacSi> {
                   ),
                 ),
               ),
+
+              SizedBox(height: 24), // Khoảng cách giữa các phần
+              // Nút Xin nghỉ phép
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: Icon(Icons.beach_access), // icon nghỉ phép
+                  label: Text("Xin nghỉ phép"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    textStyle: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: () async {
+                    int? maBacSi = await _fetchMaBacSi(widget.userId);
+
+                    if (maBacSi == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Không tìm thấy mã bác sĩ! Vui lòng kiểm tra lại.",
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => XinNghiPhepPage(maBacSi: maBacSi),
+                      ),
+                    ).then((_) {
+                      setState(() {});
+                    });
+                  },
+                ),
+              ),
+
               SizedBox(height: 40),
+
               Text(
                 "Chào mừng bạn đến với hệ thống quản lý lịch khám!",
                 style: TextStyle(

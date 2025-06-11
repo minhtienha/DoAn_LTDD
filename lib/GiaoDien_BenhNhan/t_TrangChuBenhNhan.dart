@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/t_ChinhSuaThongTin.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/t_ThongKeScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_HoSoBenhNhan.dart';
@@ -321,15 +323,12 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
         ),
       ),
 
-      // === Drawer: show avatar + tên + email ===
       drawer: _buildModernDrawer(),
 
-      // === Body chính: grid dịch vụ đã định nghĩa ở trên ===
       body: _buildTrangChuBody(),
     );
   }
 
-  /// Drawer bên trái, header + menu item
   Widget _buildModernDrawer() {
     return Drawer(
       child: Column(
@@ -376,6 +375,7 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
+
                           const SizedBox(height: 4),
                           _isLoadingName
                               ? const SizedBox()
@@ -395,12 +395,29 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
             ),
           ),
 
-          // Các mục trong Drawer (giữ nguyên như bạn)
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Column(
                 children: [
+                  _buildDrawerItem(
+                    icon: Icons.calendar_today,
+                    title: "Chỉnh sửa thông tin",
+                    onTap: () {
+                      Navigator.of(context)
+                          .push(
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => ChinhSuaThongTinCaNhan(
+                                    userId: widget.userId,
+                                  ),
+                            ),
+                          )
+                          .then((_) {
+                            setState(() {});
+                          });
+                    },
+                  ),
                   // Đặt lịch khám bệnh
                   _buildDrawerItem(
                     icon: Icons.calendar_today,
@@ -446,14 +463,18 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                     icon: Icons.folder_special,
                     title: "Hồ sơ bệnh nhân",
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder:
-                              (context) => HoSoBenhNhanScreen(
-                                maNguoiDung: widget.userId,
-                              ),
-                        ),
-                      );
+                      Navigator.of(context)
+                          .push(
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => HoSoBenhNhanScreen(
+                                    maNguoiDung: widget.userId,
+                                  ),
+                            ),
+                          )
+                          .then((_) {
+                            setState(() {});
+                          });
                     },
                   ),
                   // Phiếu đặt lịch
@@ -475,6 +496,18 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                           });
                     },
                   ),
+                  _buildDrawerItem(
+                    icon: Icons.bar_chart,
+                    title: "Thống kê",
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder:
+                              (context) => ThongKeScreen(userId: widget.userId),
+                        ),
+                      );
+                    },
+                  ),
                   // Tổng đài CSKH
                   _buildDrawerItem(
                     icon: Icons.phone_outlined,
@@ -482,6 +515,7 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                     subtitle: "0355876097",
                     onTap: () => Navigator.pop(context),
                   ),
+
                   const Spacer(),
                   // Đăng xuất
                   _buildDrawerItem(

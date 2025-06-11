@@ -146,7 +146,7 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
     }
   }
 
-  // Hàm sinh và in/xuất file PDF
+  // Hàm sinh và in/xuất file PDF với giao diện đẹp
   Future<void> _exportLichKhamPDF(
     Map<String, dynamic> lich,
     Map<String, dynamic> hoSo,
@@ -154,130 +154,371 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
     String dateStr,
   ) async {
     final fontData = await rootBundle.load("assets/fonts/Roboto-Regular.ttf");
+    final boldFontData = await rootBundle.load("assets/fonts/Roboto-Bold.ttf");
     final ttf = pw.Font.ttf(fontData);
+    final boldTtf = pw.Font.ttf(boldFontData);
     final pdf = pw.Document();
-    print(bacSi); // xem bacSi có field chuyenKhoa không
 
-    final titleStyle = pw.TextStyle(
-      font: ttf,
-      fontSize: 24,
+    // Định nghĩa các styles
+    final headerStyle = pw.TextStyle(
+      font: boldTtf,
+      fontSize: 28,
       fontWeight: pw.FontWeight.bold,
       color: PdfColor.fromHex("#0165FC"),
     );
-    final labelStyle = pw.TextStyle(
-      font: ttf,
-      fontSize: 14,
+
+    final subHeaderStyle = pw.TextStyle(
+      font: boldTtf,
+      fontSize: 16,
       fontWeight: pw.FontWeight.bold,
+      color: PdfColor.fromHex("#2D3748"),
     );
-    final valueStyle = pw.TextStyle(font: ttf, fontSize: 18);
+
+    final labelStyle = pw.TextStyle(
+      font: boldTtf,
+      fontSize: 12,
+      fontWeight: pw.FontWeight.bold,
+      color: PdfColor.fromHex("#4A5568"),
+    );
+
+    final valueStyle = pw.TextStyle(
+      font: ttf,
+      fontSize: 12,
+      color: PdfColor.fromHex("#2D3748"),
+    );
+
+    final captionStyle = pw.TextStyle(
+      font: ttf,
+      fontSize: 10,
+      color: PdfColor.fromHex("#718096"),
+    );
 
     pdf.addPage(
       pw.Page(
+        margin: const pw.EdgeInsets.all(32),
         build:
-            (context) => pw.Container(
-              padding: const pw.EdgeInsets.all(24),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.center,
+            (context) => pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // Header với logo và tiêu đề
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.all(24),
+                  decoration: pw.BoxDecoration(
+                    gradient: pw.LinearGradient(
+                      colors: [
+                        PdfColor.fromHex("#0165FC"),
+                        PdfColor.fromHex("#4A90E2"),
+                      ],
+                    ),
+                    borderRadius: pw.BorderRadius.circular(16),
+                  ),
+                  child: pw.Column(
                     children: [
-                      pw.Icon(
-                        pw.IconData(0xe145),
-                        size: 40,
-                        color: PdfColor.fromHex("#0165FC"),
-                      ), // Icon receipt
-                      pw.SizedBox(width: 10),
-                      pw.Text('THÔNG TIN LỊCH KHÁM', style: titleStyle),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.center,
+                        children: [
+                          pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text(
+                                'PHIẾU KHÁM BỆNH',
+                                style: pw.TextStyle(
+                                  font: boldTtf,
+                                  fontSize: 24,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.white,
+                                ),
+                              ),
+                              pw.Text(
+                                'Hệ thống đặt lịch khám trực tuyến',
+                                style: pw.TextStyle(
+                                  font: ttf,
+                                  fontSize: 12,
+                                  color: PdfColors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  pw.Divider(),
-                  pw.SizedBox(height: 16),
-                  pw.Row(
+                ),
+
+                pw.SizedBox(height: 24),
+
+                // Thông tin bác sĩ
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.all(20),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColor.fromHex("#F7FAFC"),
+                    borderRadius: pw.BorderRadius.circular(12),
+                    border: pw.Border.all(
+                      color: PdfColor.fromHex("#E2E8F0"),
+                      width: 1,
+                    ),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.SizedBox(width: 16),
+                      pw.Row(
+                        children: [
+                          pw.Text('THÔNG TIN BÁC SĨ', style: subHeaderStyle),
+                        ],
+                      ),
+                      pw.SizedBox(height: 16),
+                      pw.Row(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Expanded(
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                _buildInfoRow(
+                                  'Họ và tên',
+                                  bacSi['hoVaTen'] ?? '---',
+                                  labelStyle,
+                                  valueStyle,
+                                ),
+                                pw.SizedBox(height: 8),
+                                _buildInfoRow(
+                                  'Chuyên khoa',
+                                  bacSi['chuyenKhoa']?['tenChuyenKhoa'] ??
+                                      '---',
+                                  labelStyle,
+                                  valueStyle,
+                                ),
+                                if (bacSi['gioiThieu'] != null) ...[
+                                  pw.SizedBox(height: 8),
+                                  pw.Text('Giới thiệu:', style: labelStyle),
+                                  pw.SizedBox(height: 4),
+                                  pw.Container(
+                                    padding: const pw.EdgeInsets.all(12),
+                                    decoration: pw.BoxDecoration(
+                                      color: PdfColors.white,
+                                      borderRadius: pw.BorderRadius.circular(8),
+                                      border: pw.Border.all(
+                                        color: PdfColor.fromHex("#E2E8F0"),
+                                      ),
+                                    ),
+                                    child: pw.Text(
+                                      '${bacSi['gioiThieu']}',
+                                      style: valueStyle,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                pw.SizedBox(height: 20),
+
+                // Thông tin bệnh nhân
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.all(20),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColor.fromHex("#F0F9FF"),
+                    borderRadius: pw.BorderRadius.circular(12),
+                    border: pw.Border.all(
+                      color: PdfColor.fromHex("#BAE6FD"),
+                      width: 1,
+                    ),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        children: [
+                          pw.Text('THÔNG TIN BỆNH NHÂN', style: subHeaderStyle),
+                        ],
+                      ),
+                      pw.SizedBox(height: 16),
+                      pw.Row(
+                        children: [
+                          pw.Expanded(
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                _buildInfoRow(
+                                  'Họ và tên',
+                                  hoSo['hoVaTen'] ?? '---',
+                                  labelStyle,
+                                  valueStyle,
+                                ),
+                                pw.SizedBox(height: 8),
+                                _buildInfoRow(
+                                  'Giới tính',
+                                  hoSo['gioiTinh'] ?? '---',
+                                  labelStyle,
+                                  valueStyle,
+                                ),
+                              ],
+                            ),
+                          ),
+                          pw.SizedBox(width: 20),
+                          pw.Expanded(
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                _buildInfoRow(
+                                  'Ngày sinh',
+                                  hoSo['ngaySinh']?.toString().substring(
+                                        0,
+                                        10,
+                                      ) ??
+                                      '---',
+                                  labelStyle,
+                                  valueStyle,
+                                ),
+                                pw.SizedBox(height: 8),
+                                _buildInfoRow(
+                                  'Số điện thoại',
+                                  hoSo['soDienThoai'] ?? '---',
+                                  labelStyle,
+                                  valueStyle,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                pw.SizedBox(height: 20),
+
+                // Thông tin lịch khám
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.all(20),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColor.fromHex("#F0FDF4"),
+                    borderRadius: pw.BorderRadius.circular(12),
+                    border: pw.Border.all(
+                      color: PdfColor.fromHex("#BBF7D0"),
+                      width: 1,
+                    ),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        children: [
+                          pw.Text('CHI TIẾT LỊCH KHÁM', style: subHeaderStyle),
+                        ],
+                      ),
+                      pw.SizedBox(height: 16),
+                      pw.Row(
+                        children: [
+                          pw.Expanded(
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                _buildInfoRow(
+                                  'Thời gian khám',
+                                  dateStr,
+                                  labelStyle,
+                                  valueStyle,
+                                ),
+                                pw.SizedBox(height: 8),
+                                _buildInfoRow(
+                                  'Chi phí khám',
+                                  '${lich['gia']} VNĐ',
+                                  labelStyle,
+                                  valueStyle,
+                                ),
+                              ],
+                            ),
+                          ),
+                          pw.SizedBox(width: 20),
+                          pw.Expanded(
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text('Trạng thái khám:', style: labelStyle),
+                                pw.SizedBox(height: 4),
+                                _buildStatusChip(
+                                  lich['trangThaiKham'] ?? 'Chưa khám',
+                                  lich['trangThaiKham'] == 'Đã khám',
+                                ),
+                                pw.SizedBox(height: 8),
+                                pw.Text(
+                                  'Trạng thái thanh toán:',
+                                  style: labelStyle,
+                                ),
+                                pw.SizedBox(height: 4),
+                                _buildStatusChip(
+                                  lich['trangThaiTT'] ?? 'Chưa thanh toán',
+                                  lich['trangThaiTT'] == 'Đã thanh toán',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                pw.Spacer(),
+
+                // Footer
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.symmetric(vertical: 16),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border(
+                      top: pw.BorderSide(
+                        color: PdfColor.fromHex("#E2E8F0"),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
                       pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Text(
-                            'Bác sĩ: ${bacSi['hoVaTen'] ?? '---'}',
-                            style: labelStyle,
+                            '🏥 Hệ thống đặt lịch khám bệnh',
+                            style: pw.TextStyle(
+                              font: boldTtf,
+                              fontSize: 12,
+                              color: PdfColor.fromHex("#0165FC"),
+                            ),
                           ),
+                          pw.SizedBox(height: 4),
                           pw.Text(
-                            'Chuyên khoa: ${bacSi['chuyenKhoa']?['tenChuyenKhoa'] ?? '---'}',
+                            'Chăm sóc sức khỏe của bạn là ưu tiên hàng đầu',
+                            style: captionStyle,
+                          ),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          pw.Text('Ngày xuất phiếu', style: labelStyle),
+                          pw.SizedBox(height: 4),
+                          pw.Text(
+                            DateTime.now().toString().substring(0, 10),
                             style: valueStyle,
                           ),
                         ],
                       ),
                     ],
                   ),
-                  pw.SizedBox(height: 18),
-                  pw.Text('Thông tin bệnh nhân', style: labelStyle),
-                  pw.SizedBox(height: 4),
-                  pw.Text(
-                    'Họ tên: ${hoSo['hoVaTen'] ?? ''}',
-                    style: valueStyle,
-                  ),
-                  pw.Text(
-                    'Giới tính: ${hoSo['gioiTinh'] ?? ''}',
-                    style: valueStyle,
-                  ),
-                  pw.Text(
-                    'Ngày sinh: ${hoSo['ngaySinh']?.toString().substring(0, 10) ?? ''}',
-                    style: valueStyle,
-                  ),
-                  pw.SizedBox(height: 12),
-                  pw.Text('Thời gian khám: $dateStr', style: labelStyle),
-                  pw.Text('Giá: ${lich['gia']} đ', style: valueStyle),
-                  pw.SizedBox(height: 8),
-                  pw.Row(
-                    children: [
-                      pw.Text('Trạng thái khám: ', style: labelStyle),
-                      pw.Text(
-                        '${lich['trangThaiKham'] ?? ''}',
-                        style: valueStyle.copyWith(
-                          color:
-                              (lich['trangThaiKham'] == 'Đã khám')
-                                  ? PdfColor.fromHex('#43A047')
-                                  : PdfColor.fromHex('#F9A825'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  pw.Row(
-                    children: [
-                      pw.Text('Trạng thái TT: ', style: labelStyle),
-                      pw.Text(
-                        '${lich['trangThaiTT'] ?? ''}',
-                        style: valueStyle.copyWith(
-                          color:
-                              (lich['trangThaiTT'] == 'Đã thanh toán')
-                                  ? PdfColor.fromHex('#1976D2')
-                                  : PdfColor.fromHex('#E53935'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (bacSi['gioiThieu'] != null) ...[
-                    pw.SizedBox(height: 16),
-                    pw.Text('Giới thiệu bác sĩ:', style: labelStyle),
-                    pw.Text('${bacSi['gioiThieu']}', style: valueStyle),
-                  ],
-                  pw.Spacer(),
-                  pw.Divider(),
-                  pw.Align(
-                    alignment: pw.Alignment.centerRight,
-                    child: pw.Text(
-                      'Ngày xuất: ${DateTime.now().toString().substring(0, 10)}',
-                      style: pw.TextStyle(
-                        font: ttf,
-                        fontSize: 10,
-                        color: PdfColor.fromHex("#757575"),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
       ),
     );
@@ -285,7 +526,56 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
     // Show print/share/save PDF dialog
     await Printing.layoutPdf(
       onLayout: (format) => pdf.save(),
-      name: 'lich_kham.pdf',
+      name: 'phieu_kham_benh_${DateTime.now().millisecondsSinceEpoch}.pdf',
+    );
+  }
+
+  // Helper function để tạo thông tin dạng label-value
+  pw.Widget _buildInfoRow(
+    String label,
+    String value,
+    pw.TextStyle labelStyle,
+    pw.TextStyle valueStyle,
+  ) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(label, style: labelStyle),
+        pw.SizedBox(height: 4),
+        pw.Text(value, style: valueStyle),
+      ],
+    );
+  }
+
+  // Helper function để tạo status chip
+  pw.Widget _buildStatusChip(String status, bool isPositive) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: pw.BoxDecoration(
+        color:
+            isPositive
+                ? PdfColor.fromHex("#DCFCE7")
+                : PdfColor.fromHex("#FEF3C7"),
+        borderRadius: pw.BorderRadius.circular(20),
+        border: pw.Border.all(
+          color:
+              isPositive
+                  ? PdfColor.fromHex("#16A34A")
+                  : PdfColor.fromHex("#D97706"),
+          width: 1,
+        ),
+      ),
+      child: pw.Text(
+        status,
+        style: pw.TextStyle(
+          fontSize: 10,
+          fontWeight: pw.FontWeight.bold,
+          color:
+              isPositive
+                  ? PdfColor.fromHex("#16A34A")
+                  : PdfColor.fromHex("#D97706"),
+        ),
+      ),
     );
   }
 

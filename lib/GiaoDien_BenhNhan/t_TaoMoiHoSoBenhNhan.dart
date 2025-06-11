@@ -1,3 +1,4 @@
+import 'package:doan_nhom06/GiaoDien_BenhNhan/t_TrangChuBenhNhan.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -132,7 +133,7 @@ class _TaoHoSoBenhNhanScreenState extends State<TaoHoSoBenhNhanScreen> {
       setState(() => _loading = false);
 
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
-        Navigator.pop(context, true);
+        Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(
           context,

@@ -1,10 +1,9 @@
 import 'dart:convert';
-
+import 'package:doan_nhom06/GiaoDien_BenhNhan/t_DanhSachLichChon.dart';
 import 'package:flutter/material.dart';
-import 't_DanhSachLichChon.dart';
-import 'package:doan_nhom06/GiaoDien_BenhNhan/trangChu.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:intl/intl.dart'; // Thêm intl để xử lý ngày
 
 String getBaseUrl() {
   if (kIsWeb) {
@@ -101,11 +100,37 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
   String? _selectedTime;
   late List<Map<String, dynamic>> selectedBookings;
   List<String> availableTimes = [];
+  List<Map<String, dynamic>> leaveRequests = []; // Lưu đơn nghỉ phép
 
   @override
   void initState() {
     super.initState();
     selectedBookings = widget.selectedBookings;
+    _fetchLeaveRequests(); // Lấy đơn nghỉ phép khi khởi tạo
+  }
+
+  // Lấy danh sách đơn nghỉ phép của bác sĩ
+  Future<void> _fetchLeaveRequests() async {
+    try {
+      final bacSiId = widget.bacSi['id'];
+      final url = '${getBaseUrl()}api/NghiPhepBacSi/BacSi/$bacSiId';
+      final resp = await http.get(Uri.parse(url));
+      if (resp.statusCode == 200) {
+        setState(() {
+          leaveRequests =
+              (jsonDecode(resp.body) as List)
+                  .cast<
+                    Map<String, dynamic>
+                  >() // Cast to List<Map<String, dynamic>>
+                  .where((leave) => leave['trangThai'] == 'Đã duyệt')
+                  .toList();
+        });
+      } else {
+        print("Lỗi khi lấy đơn nghỉ phép: ${resp.statusCode}");
+      }
+    } catch (error) {
+      print("Lỗi khi lấy đơn nghỉ phép: $error");
+    }
   }
 
   Future<void> _chonNgay(BuildContext context) async {
@@ -120,9 +145,36 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
         print("🚨 Lỗi khi chuyển đổi ngày làm việc: $e");
       }
     }
-    // Bộ lọc để chỉ hiển thị ngày có trong `allowedWeekdays`
+
+    // Bộ lọc để kiểm tra ngày hợp lệ (dựa trên lịch làm việc và đơn nghỉ phép)
+    bool isDayValid(DateTime day) {
+      // Kiểm tra ngày có trong lịch làm việc
+      if (!allowedWeekdays.contains(day.weekday)) return false;
+
+      // Kiểm tra ngày có nằm trong khoảng thời gian nghỉ phép không
+      for (var leave in leaveRequests) {
+        DateTime leaveStart = DateTime.parse(leave['ngayBatDau']);
+        DateTime leaveEnd = DateTime.parse(leave['ngayKetThuc']);
+        // Loại bỏ giờ/phút/giây để so sánh chỉ ngày
+        leaveStart = DateTime(
+          leaveStart.year,
+          leaveStart.month,
+          leaveStart.day,
+        );
+        leaveEnd = DateTime(leaveEnd.year, leaveEnd.month, leaveEnd.day);
+        DateTime checkDay = DateTime(day.year, day.month, day.day);
+        if (checkDay.isAtSameMomentAs(leaveStart) ||
+            checkDay.isAtSameMomentAs(leaveEnd) ||
+            (checkDay.isAfter(leaveStart) && checkDay.isBefore(leaveEnd))) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // Tìm ngày hợp lệ đầu tiên
     var initialValidDate = DateTime.now();
-    while (!allowedWeekdays.contains(initialValidDate.weekday)) {
+    while (!isDayValid(initialValidDate)) {
       initialValidDate = initialValidDate.add(const Duration(days: 1));
     }
 
@@ -131,8 +183,22 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
       initialDate: initialValidDate,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      selectableDayPredicate:
-          (DateTime day) => allowedWeekdays.contains(day.weekday),
+      selectableDayPredicate: isDayValid,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color(0xFF0165FC),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: Color(0xFF0165FC)),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     List<String> generateTimeSlots(String rawLichLamViec, int selectedWeekday) {
@@ -196,6 +262,7 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
       );
 
       final bacSiId = widget.bacSi['id'];
+
       Set<String> bookedDB = {};
       try {
         final booked = await fetchBookedSlots(bacSiId, pickedDate);
@@ -226,8 +293,7 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
       return;
     }
 
-    final newDate =
-        "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}";
+    final newDate = DateFormat('dd/MM/yyyy').format(_selectedDate!);
     final newStart = _selectedTime!.split('-')[0].trim();
 
     // Kiểm tra trùng lịch
@@ -281,7 +347,7 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
       MaterialPageRoute(
         builder:
             (_) => DanhSachLichChuaThanhToanScreen(
-              hoSo: widget.bacSi,
+              hoSo: widget.hoSo, // Sửa hoSo để truyền đúng
               userId: widget.userId,
               ngayChon: _selectedDate,
               selectedBookings: selectedBookings,
@@ -337,11 +403,11 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
               onPressed: () => _chonNgay(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: Colors.blue,
+                foregroundColor: Color(0xFF0165FC),
               ),
               child: Text(
                 _selectedDate != null
-                    ? "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}"
+                    ? DateFormat('dd/MM/yyyy').format(_selectedDate!)
                     : "Chọn ngày",
               ),
             ),

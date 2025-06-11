@@ -92,7 +92,7 @@ class _LichKhamBenhBacSiState extends State<LichKhamBenhBacSi> {
           "Danh sách lịch được đặt",
           style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFF0165FC),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {

@@ -1,6 +1,6 @@
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_ChonBacSiKham.dart';
 import 'package:doan_nhom06/GiaoDien_BenhNhan/t_DatLichKhamChuyenKhoa.dart';
-import 'package:doan_nhom06/GiaoDien_BenhNhan/trangChu.dart';
+import 'package:doan_nhom06/GiaoDien_BenhNhan/t_TrangChuBenhNhan.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';

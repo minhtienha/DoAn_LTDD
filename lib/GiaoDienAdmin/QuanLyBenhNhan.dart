@@ -82,6 +82,16 @@ class _QuanLyTaiKhoanBenhNhanState extends State<QuanLyTaiKhoanBenhNhan> {
     }
   }
 
+  bool isEmailDuplicate(String email, [int? currentUserId]) {
+    return benhNhanList.any((e) {
+      final eEmail = (e['email'] ?? '').toString().toLowerCase();
+      final newEmail = email.toLowerCase();
+      final isSameUser =
+          currentUserId != null && e['maNguoiDung'] == currentUserId;
+      return eEmail == newEmail && !isSameUser;
+    });
+  }
+
   void showEditDialog(Map<String, dynamic>? data) {
     final formKey = GlobalKey<FormState>();
     final tenController = TextEditingController(text: data?['hoVaTen'] ?? "");
@@ -164,6 +174,21 @@ class _QuanLyTaiKhoanBenhNhanState extends State<QuanLyTaiKhoanBenhNhan> {
             ElevatedButton(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
+
+                // Kiểm tra trùng email trước khi gửi lên server
+                if (isEmailDuplicate(
+                  emailController.text,
+                  data?['maNguoiDung'],
+                )) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "Email này đã được sử dụng. Vui lòng chọn email khác.",
+                      ),
+                    ),
+                  );
+                  return; // Dừng xử lý không gửi request
+                }
                 final body = {
                   "hoVaTen": tenController.text,
                   "email": emailController.text,
@@ -199,6 +224,14 @@ class _QuanLyTaiKhoanBenhNhanState extends State<QuanLyTaiKhoanBenhNhan> {
                     } catch (_) {
                       errorMsg = resp.body.toString();
                     }
+
+                    // Kiểm tra nếu lỗi là trùng email
+                    if (errorMsg.toLowerCase().contains('email') &&
+                        errorMsg.toLowerCase().contains('đã tồn tại')) {
+                      errorMsg =
+                          "Email này đã được sử dụng. Vui lòng chọn email khác.";
+                    }
+
                     ScaffoldMessenger.of(
                       context,
                     ).showSnackBar(SnackBar(content: Text(errorMsg)));
@@ -207,7 +240,7 @@ class _QuanLyTaiKhoanBenhNhanState extends State<QuanLyTaiKhoanBenhNhan> {
                   // Sửa
                   final resp = await http.put(
                     Uri.parse(
-                      'http://localhost:5001/api/NguoiDung/${data['maNguoiDung']}',
+                      '${getBaseUrl()}api/NguoiDung/${data['maNguoiDung']}',
                     ),
                     headers: {"Content-Type": "application/json"},
                     body: jsonEncode({
@@ -238,6 +271,13 @@ class _QuanLyTaiKhoanBenhNhanState extends State<QuanLyTaiKhoanBenhNhan> {
                     } catch (_) {
                       errorMsg = resp.body.toString();
                     }
+
+                    if (errorMsg.toLowerCase().contains('email') &&
+                        errorMsg.toLowerCase().contains('đã tồn tại')) {
+                      errorMsg =
+                          "Email này đã được sử dụng. Vui lòng chọn email khác.";
+                    }
+
                     ScaffoldMessenger.of(
                       context,
                     ).showSnackBar(SnackBar(content: Text(errorMsg)));
@@ -319,7 +359,7 @@ class _QuanLyTaiKhoanBenhNhanState extends State<QuanLyTaiKhoanBenhNhan> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFF0165FC),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -337,6 +377,9 @@ class _QuanLyTaiKhoanBenhNhanState extends State<QuanLyTaiKhoanBenhNhan> {
             ),
           ),
         ],
+        iconTheme: IconThemeData(
+          color: Colors.white,
+        ), // đổi iconTheme thành trắng
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
