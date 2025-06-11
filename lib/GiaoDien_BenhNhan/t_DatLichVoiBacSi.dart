@@ -173,53 +173,41 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
       return timeSlots;
     }
 
+    Future<List<String>> fetchBookedSlots(int bacSiId, DateTime date) async {
+      final dateStr =
+          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+      final url =
+          "${getBaseUrl()}api/LichKham/BacSiNgay?maBacSi=$bacSiId&ngay=$dateStr";
+      final resp = await http.get(Uri.parse(url));
+      if (resp.statusCode == 200) {
+        final List<dynamic> times = jsonDecode(resp.body);
+        return times.map((t) {
+          final dt = DateTime.parse(t);
+          return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+        }).toList();
+      }
+      return [];
+    }
+
     if (pickedDate != null) {
-      // Generate tất cả time slot hợp lệ trong lịch làm việc của bác sĩ
       List<String> times = generateTimeSlots(
         widget.bacSi["lichLamViec"],
         pickedDate.weekday,
       );
 
-      final bookedLocal =
-          selectedBookings
-              .where(
-                (b) =>
-                    b['bacSiId'] == widget.bacSi['id'] &&
-                    b['ngayKham'] ==
-                        "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}",
-              )
-              .map((b) => b['khungGio'])
-              .toSet();
-
-      // Lấy khung giờ đã đặt từ database (gọi API)
       final bacSiId = widget.bacSi['id'];
-      final resp = await http.get(
-        Uri.parse("${getBaseUrl()}api/LichKham?maBacSi=$bacSiId"),
-      );
-
       Set<String> bookedDB = {};
-      if (resp.statusCode == 200) {
-        final lichList = jsonDecode(resp.body) as List;
-        for (final lich in lichList) {
-          // Lấy ngày
-          final DateTime thoiGianKham = DateTime.parse(lich['thoiGianKham']);
-          final isSameDay =
-              thoiGianKham.day == pickedDate.day &&
-              thoiGianKham.month == pickedDate.month &&
-              thoiGianKham.year == pickedDate.year;
-          if (lich['maBacSi'] == bacSiId && isSameDay) {
-            // Convert lại khung giờ (07:30:00 thì chỉ lấy 07:30)
-            final slot =
-                "${thoiGianKham.hour.toString().padLeft(2, '0')}:${thoiGianKham.minute.toString().padLeft(2, '0')}";
-            bookedDB.add(slot);
-          }
-        }
+      try {
+        final booked = await fetchBookedSlots(bacSiId, pickedDate);
+        bookedDB = booked.toSet();
+      } catch (e) {
+        print("Lỗi fetch slot đã đặt: $e");
       }
 
       times =
           times.where((slot) {
             final slotStart = slot.split('-')[0].trim();
-            return !bookedLocal.contains(slot) && !bookedDB.contains(slotStart);
+            return !bookedDB.contains(slotStart);
           }).toList();
 
       setState(() {
@@ -314,12 +302,7 @@ class _DatLichBacSiState extends State<DatLichBacSi> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const TrangChu(userId: 1),
-              ),
-            );
+            Navigator.pop(context);
           },
         ),
       ),

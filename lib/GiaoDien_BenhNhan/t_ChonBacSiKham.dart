@@ -2,7 +2,7 @@ import 'package:doan_nhom06/GiaoDien_BenhNhan/t_DatLichVoiBacSi.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 
 String getBaseUrl() {
   if (kIsWeb) {
@@ -268,6 +268,13 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
               itemCount: filteredBacSi.length,
               itemBuilder: (context, index) {
                 final bacSi = filteredBacSi[index];
+                // Lấy chuỗi base64
+                final String? base64String = bacSi['hinhAnh'];
+                Uint8List? imageBytes;
+                if (base64String != null && base64String.isNotEmpty) {
+                  imageBytes = base64Decode(base64String);
+                }
+
                 return Card(
                   elevation: 5,
                   shape: RoundedRectangleBorder(
@@ -285,14 +292,19 @@ class _ChonBacSiScreenState extends State<ChonBacSiScreen> {
                               width: 80,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
-                                image: const DecorationImage(
-                                  image: AssetImage(
-                                    "assets/images/my-avatar.jpg",
-                                  ),
+                                image: DecorationImage(
+                                  image:
+                                      imageBytes != null
+                                          ? MemoryImage(imageBytes)
+                                          : AssetImage(
+                                                'assets/images/default.png',
+                                              )
+                                              as ImageProvider,
                                   fit: BoxFit.cover,
                                 ),
                               ),
                             ),
+
                             const SizedBox(width: 16),
                             Expanded(
                               child: Column(

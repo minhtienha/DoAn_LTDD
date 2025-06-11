@@ -156,19 +156,20 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
     final fontData = await rootBundle.load("assets/fonts/Roboto-Regular.ttf");
     final ttf = pw.Font.ttf(fontData);
     final pdf = pw.Document();
+    print(bacSi); // xem bacSi có field chuyenKhoa không
 
     final titleStyle = pw.TextStyle(
       font: ttf,
-      fontSize: 20,
+      fontSize: 24,
       fontWeight: pw.FontWeight.bold,
       color: PdfColor.fromHex("#0165FC"),
     );
     final labelStyle = pw.TextStyle(
       font: ttf,
-      fontSize: 12,
+      fontSize: 14,
       fontWeight: pw.FontWeight.bold,
     );
-    final valueStyle = pw.TextStyle(font: ttf, fontSize: 12);
+    final valueStyle = pw.TextStyle(font: ttf, fontSize: 18);
 
     pdf.addPage(
       pw.Page(
@@ -194,21 +195,6 @@ class _LichSuKhamScreenState extends State<LichSuKhamScreen> {
                   pw.SizedBox(height: 16),
                   pw.Row(
                     children: [
-                      pw.Container(
-                        width: 60,
-                        height: 60,
-                        decoration: pw.BoxDecoration(
-                          color: PdfColor.fromHex("#E3F0FF"),
-                          shape: pw.BoxShape.circle,
-                        ),
-                        child: pw.Center(
-                          child: pw.Icon(
-                            pw.IconData(0xe491),
-                            size: 30,
-                            color: PdfColor.fromHex("#0165FC"),
-                          ),
-                        ),
-                      ),
                       pw.SizedBox(width: 16),
                       pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,

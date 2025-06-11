@@ -74,6 +74,12 @@ class _QuanLyTaiKhoanBacSiState extends State<QuanLyTaiKhoanBacSi> {
     Uint8List? imageBytes;
     String? imageBase64;
 
+    List<String> selectedDays = []; // Lưu các thứ được chọn
+    List<String> selectedShifts = []; // Lưu các ca được chọn
+
+    // Các ca mẫu
+    const shifts = ["07:30-11:30", "13:00-17:00"];
+
     // Lấy danh sách chuyên khoa từ API
     List<dynamic> chuyenKhoaList = [];
     final resp = await http.get(Uri.parse('${getBaseUrl()}api/ChuyenKhoa'));
@@ -218,31 +224,66 @@ class _QuanLyTaiKhoanBacSiState extends State<QuanLyTaiKhoanBacSi> {
                                     : null,
                       ),
                       SizedBox(height: 10),
-                      TextFormField(
-                        controller: ngayLamViecController,
-                        decoration: InputDecoration(
-                          labelText: "Ngày làm việc (VD: T2;T4;T6)",
-                          prefixIcon: Icon(Icons.calendar_today),
-                        ),
-                        validator:
-                            (value) =>
-                                value == null || value.trim().isEmpty
-                                    ? "Vui lòng nhập ngày làm việc"
-                                    : null,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Chọn ngày làm việc:",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Wrap(
+                            spacing: 8,
+                            children: List.generate(5, (i) {
+                              final dayLabel = 'T${i + 2}'; // T2 đến T6
+                              return FilterChip(
+                                label: Text(dayLabel),
+                                selected: selectedDays.contains(dayLabel),
+                                onSelected: (selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      selectedDays.add(dayLabel);
+                                    } else {
+                                      selectedDays.remove(dayLabel);
+                                    }
+                                  });
+                                },
+                              );
+                            }),
+                          ),
+                        ],
                       ),
                       SizedBox(height: 10),
-                      TextFormField(
-                        controller: khungGioLamViecController,
-                        decoration: InputDecoration(
-                          labelText:
-                              "Khung giờ làm việc (VD: 07:30-11:30;13:00-17:00)",
-                          prefixIcon: Icon(Icons.access_time),
-                        ),
-                        validator:
-                            (value) =>
-                                value == null || value.trim().isEmpty
-                                    ? "Vui lòng nhập khung giờ"
-                                    : null,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Chọn ca làm việc:",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Wrap(
+                            spacing: 8,
+                            children:
+                                shifts
+                                    .map(
+                                      (shift) => FilterChip(
+                                        label: Text(shift),
+                                        selected: selectedShifts.contains(
+                                          shift,
+                                        ),
+                                        onSelected: (selected) {
+                                          setState(() {
+                                            if (selected) {
+                                              selectedShifts.add(shift);
+                                            } else {
+                                              selectedShifts.remove(shift);
+                                            }
+                                          });
+                                        },
+                                      ),
+                                    )
+                                    .toList(),
+                          ),
+                        ],
                       ),
                       SizedBox(height: 10),
                       TextFormField(
@@ -265,6 +306,29 @@ class _QuanLyTaiKhoanBacSiState extends State<QuanLyTaiKhoanBacSi> {
                 ElevatedButton(
                   onPressed: () async {
                     if (!formKey.currentState!.validate()) return;
+
+                    // Thêm đoạn kiểm tra chọn ngày và ca làm việc ở đây
+                    if (selectedDays.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Vui lòng chọn ít nhất một ngày làm việc!",
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    if (selectedShifts.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Vui lòng chọn ít nhất một ca làm việc!",
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
                     // 1. Tạo tài khoản người dùng cho bác sĩ
                     final nguoiDungBody = {
                       "hoVaTen": tenController.text.trim(),
@@ -287,9 +351,8 @@ class _QuanLyTaiKhoanBacSiState extends State<QuanLyTaiKhoanBacSi> {
                         "hoVaTen": tenController.text.trim(),
                         "maNguoiDung": maNguoiDung,
                         "maChuyenKhoa": maChuyenKhoa,
-                        "ngayLamViec": ngayLamViecController.text.trim(),
-                        "khungGioLamViec":
-                            khungGioLamViecController.text.trim(),
+                        "ngayLamViec": selectedDays.join(";"),
+                        "khungGioLamViec": selectedShifts.join(";"),
                         "gioiThieu": gioiThieuController.text.trim(),
                         "gioiTinh": gioiTinh ?? "",
                         "hinhAnh": imageBase64,

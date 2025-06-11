@@ -257,7 +257,9 @@ class _TrangChuBacSiState extends State<TrangChuBacSi> {
                             (context) =>
                                 LichKhamBenhBacSi(maBacSi: bacSi?['maBacSi']),
                       ),
-                    );
+                    ).then((_) {
+                      setState(() {});
+                    });
                   },
                   child: Container(
                     width: double.infinity,

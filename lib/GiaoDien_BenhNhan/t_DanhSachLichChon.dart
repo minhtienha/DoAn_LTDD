@@ -222,7 +222,14 @@ class _DanhSachLichChuaThanhToanScreenState
                   ),
             );
             if (shouldPop == true) {
-              Navigator.pop(context);
+              widget.selectedBookings.clear();
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TrangChu(userId: widget.userId),
+                ),
+                (route) => false,
+              );
             }
           },
         ),

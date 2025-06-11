@@ -189,26 +189,30 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
             opacity: value,
             child: InkWell(
               onTap: () {
-                Navigator.of(context).push(
-                  PageRouteBuilder(
-                    pageBuilder:
-                        (context, animation, secondaryAnimation) => page,
-                    transitionsBuilder: (
-                      context,
-                      animation,
-                      secondaryAnimation,
-                      child,
-                    ) {
-                      return SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(1.0, 0.0),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      );
-                    },
-                  ),
-                );
+                Navigator.of(context)
+                    .push(
+                      PageRouteBuilder(
+                        pageBuilder:
+                            (context, animation, secondaryAnimation) => page,
+                        transitionsBuilder: (
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        ) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          );
+                        },
+                      ),
+                    )
+                    .then((_) {
+                      setState(() {});
+                    });
               },
               borderRadius: BorderRadius.circular(20),
               child: Container(
@@ -402,15 +406,19 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                     icon: Icons.calendar_today,
                     title: "Đặt lịch khám bệnh",
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder:
-                              (context) => ChonHoSoScreen(
-                                userId: widget.userId,
-                                bookingType: "ChuyenKhoa",
-                              ),
-                        ),
-                      );
+                      Navigator.of(context)
+                          .push(
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => ChonHoSoScreen(
+                                    userId: widget.userId,
+                                    bookingType: "ChuyenKhoa",
+                                  ),
+                            ),
+                          )
+                          .then((_) {
+                            setState(() {});
+                          });
                     },
                   ),
                   // Đặt lịch theo bác sĩ
@@ -418,15 +426,19 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                     icon: Icons.person_add,
                     title: "Đặt lịch theo bác sĩ",
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder:
-                              (context) => ChonHoSoScreen(
-                                userId: widget.userId,
-                                bookingType: "BacSi",
-                              ),
-                        ),
-                      );
+                      Navigator.of(context)
+                          .push(
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => ChonHoSoScreen(
+                                    userId: widget.userId,
+                                    bookingType: "BacSi",
+                                  ),
+                            ),
+                          )
+                          .then((_) {
+                            setState(() {});
+                          });
                     },
                   ),
                   // Hồ sơ bệnh nhân
@@ -449,13 +461,18 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                     icon: Icons.receipt_long,
                     title: "Phiếu đặt lịch",
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder:
-                              (context) =>
-                                  LichSuKhamScreen(maNguoiDung: widget.userId),
-                        ),
-                      );
+                      Navigator.of(context)
+                          .push(
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => LichSuKhamScreen(
+                                    maNguoiDung: widget.userId,
+                                  ),
+                            ),
+                          )
+                          .then((_) {
+                            setState(() {});
+                          });
                     },
                   ),
                   // Tổng đài CSKH
@@ -472,11 +489,15 @@ class _TrangChuState extends State<TrangChu> with TickerProviderStateMixin {
                     title: "Đăng xuất",
                     isLogout: true,
                     onTap: () async {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (context) => const DangNhap(),
-                        ),
-                      );
+                      Navigator.of(context)
+                          .pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => const DangNhap(),
+                            ),
+                          )
+                          .then((_) {
+                            setState(() {});
+                          });
                     },
                   ),
                 ],
