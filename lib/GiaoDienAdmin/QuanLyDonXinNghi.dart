@@ -25,6 +25,7 @@ class _DonXinNghiPhepState extends State<DonXinNghiPhep> {
   Map<int, String> bacSiNames = {};
   bool isLoading = false;
   final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
+  Map<int, String> chuyenKhoaCache = {};
 
   @override
   void initState() {
@@ -40,10 +41,11 @@ class _DonXinNghiPhepState extends State<DonXinNghiPhep> {
       if (resp.statusCode == 200) {
         donNghiList = jsonDecode(resp.body);
         for (var don in donNghiList) {
-          final maBacSi = don['maBacSi'];
-          if (!bacSiNames.containsKey(maBacSi)) {
-            final bacSi = await fetchBacSi(maBacSi);
-            bacSiNames[maBacSi] = bacSi['hoVaTen'] ?? 'Bác sĩ ID: $maBacSi';
+          final maChuyenKhoa = don['bacSi']['maChuyenKhoa'];
+          if (maChuyenKhoa != null &&
+              !chuyenKhoaCache.containsKey(maChuyenKhoa)) {
+            final tenCK = await fetchTenChuyenKhoa(maChuyenKhoa);
+            chuyenKhoaCache[maChuyenKhoa] = tenCK;
           }
         }
         setState(() {});
@@ -72,6 +74,22 @@ class _DonXinNghiPhepState extends State<DonXinNghiPhep> {
       debugPrint("Lỗi khi lấy thông tin bác sĩ $maBacSi: $error");
     }
     return {'hoVaTen': null};
+  }
+
+  Future<String> fetchTenChuyenKhoa(int maChuyenKhoa) async {
+    if (chuyenKhoaCache.containsKey(maChuyenKhoa)) {
+      return chuyenKhoaCache[maChuyenKhoa]!;
+    }
+
+    final url = '${getBaseUrl()}api/ChuyenKhoa/$maChuyenKhoa';
+    final resp = await http.get(Uri.parse(url));
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body);
+      String ten = data['tenChuyenKhoa'] ?? 'Không rõ';
+      chuyenKhoaCache[maChuyenKhoa] = ten;
+      return ten;
+    }
+    return 'Không rõ';
   }
 
   Future<void> updateDonNghiPhep(int maNghiPhep, String trangThai) async {
@@ -168,7 +186,6 @@ class _DonXinNghiPhepState extends State<DonXinNghiPhep> {
                   itemCount: donNghiList.length,
                   itemBuilder: (context, index) {
                     final don = donNghiList[index];
-                    final maBacSi = don['maBacSi'];
                     return Card(
                       elevation: 2,
                       margin: EdgeInsets.symmetric(vertical: 8),
@@ -181,13 +198,19 @@ class _DonXinNghiPhepState extends State<DonXinNghiPhep> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Bác sĩ: ${bacSiNames[maBacSi] ?? 'Đang tải...'}",
+                              "Bác sĩ: ${don['bacSi'] != null ? don['bacSi']['hoVaTen'] ?? 'Không rõ' : 'Không rõ'}",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF0165FC),
                               ),
                             ),
+                            SizedBox(height: 8),
+                            Text(
+                              "Chuyên khoa: ${don['bacSi'] != null && don['bacSi']['maChuyenKhoa'] != null ? chuyenKhoaCache[don['bacSi']['maChuyenKhoa']] ?? 'Đang tải...' : 'Không rõ'}",
+                              style: TextStyle(fontSize: 15),
+                            ),
+
                             SizedBox(height: 8),
                             Text(
                               "Từ: ${dateFormat.format(DateTime.parse(don['ngayBatDau']))} - Đến: ${dateFormat.format(DateTime.parse(don['ngayKetThuc']))}",

@@ -173,7 +173,7 @@ class _DangNhapState extends State<DangNhap> with TickerProviderStateMixin {
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
                 children: [
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 20),
 
                   // Logo và tiêu đề
                   FadeTransition(
@@ -200,7 +200,7 @@ class _DangNhapState extends State<DangNhap> with TickerProviderStateMixin {
                             color: Color(0xFF0165FC),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
                         const Text(
                           "Đặt lịch khám bệnh",
                           style: TextStyle(
@@ -223,7 +223,7 @@ class _DangNhapState extends State<DangNhap> with TickerProviderStateMixin {
                     ),
                   ),
 
-                  const SizedBox(height: 50),
+                  const SizedBox(height: 20),
 
                   // Form đăng nhập
                   SlideTransition(
@@ -261,7 +261,7 @@ class _DangNhapState extends State<DangNhap> with TickerProviderStateMixin {
                             ),
                           ),
 
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 20),
 
                           // Email field
                           Column(
@@ -314,8 +314,8 @@ class _DangNhapState extends State<DangNhap> with TickerProviderStateMixin {
                                       color: Color(0xFF718096),
                                     ),
                                     contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 16,
+                                      horizontal: 12,
+                                      vertical: 12,
                                     ),
                                   ),
                                 ),
@@ -389,8 +389,8 @@ class _DangNhapState extends State<DangNhap> with TickerProviderStateMixin {
                                       },
                                     ),
                                     contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 16,
+                                      horizontal: 12,
+                                      vertical: 12,
                                     ),
                                   ),
                                 ),
